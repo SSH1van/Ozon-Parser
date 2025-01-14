@@ -9,9 +9,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class PageActions {
     private final WebDriver driver;
@@ -30,48 +28,90 @@ public class PageActions {
         TimeUnit.SECONDS.sleep(timeSleep);
     }
 
-    public void getProducts() throws InterruptedException {
+    public void getProducts() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        Set<String> seenProducts = new HashSet<>();
-        boolean hasMoreData = true;
+        WebElement paginatorContent = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("paginatorContent")));
+        List<WebElement> productTiles = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
 
-        while (hasMoreData) {
-            // Ожидание загрузки элемента paginatorContent
-            WebElement paginatorContent = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("paginatorContent")));
-
-            // Поиск всех карточек товаров в текущей видимой области
-            List<WebElement> productTiles = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
-
-            for (WebElement productTile : productTiles) {
+        for (WebElement productTile : productTiles) {
+            try {
+                // Получение цены товара
+                String productPriceString;
                 try {
-                    // Извлечение названия товара, его цены и ссылки
-                    String productName = productTile.findElement(By.cssSelector(".tile-clickable-element .tsBody500Medium")).getText();
+                    productPriceString = productTile.findElement(By.cssSelector(".tsHeadline500Medium")).getText();
+                }
+                catch (Exception e) {
+                    // Если товара нет в наличии
+                    continue;
+                }
+                productPriceString = productPriceString.substring(0, productPriceString.length() - 1).replaceAll(" ", "");
+                int productPrice = Integer.parseInt(productPriceString);
 
-                    String productPriceString = productTile.findElement(By.cssSelector(".c3023-a1.tsHeadline500Medium")).getText();
-                    productPriceString = productPriceString.substring(0, productPriceString.length() - 1).replaceAll(" ", "");
-                    int productPrice = Integer.parseInt(productPriceString);
+                // Получение ссылки на товар
+                String productLink = "https://www.ozon.ru" + productTile.findElement(By.cssSelector(".tile-clickable-element")).getDomAttribute("href");
 
-                    String productLink = "https://www.ozon.ru" + productTile.findElement(By.cssSelector(".tile-clickable-element")).getDomAttribute("href");
+                DatabaseManager.insertProduct(productPrice, productLink);
+            } catch (Exception e) {
+                System.err.println("Ошибка при извлечении данных для товара: " + e.getMessage());
+            }
+        }
+        System.out.println("Страница записана в базу данных");
+    }
 
-                    if (seenProducts.add(productName)) {
-                        DatabaseManager.insertProduct(productName, productPrice, productLink);
-                    }
+    public void scrollAndClick () {
+        int timeWait = 200;
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(timeWait));
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        long lastHeight = getScrollHeight(jsExecutor);
+        int iteretions = 0;
+
+        try {
+            while (true) {
+                // Прокручиваем страницу вниз
+                jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+                TimeUnit.MILLISECONDS.sleep(timeWait);
+
+                System.out.println(iteretions);
+                long newHeight = getScrollHeight(jsExecutor);
+                if (newHeight != lastHeight) {
+                    lastHeight = newHeight;
+                    iteretions = 0;
+                    continue;
+                } else if (iteretions < 15) {
+                    iteretions++;
+                    continue;
+                }
+                iteretions = 0;
+
+                // Получаем данные страницы и записываем в таблицу
+                getProducts();
+
+                // Прокручиваем экран к кнопке "Дальше" и нажимаем на неё для перехода на следующую страницу
+                WebElement nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
+                jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
+                jsExecutor.executeScript("window.scrollBy(0, -200);");
+                nextButton.click();
+                TimeUnit.SECONDS.sleep(2);
+
+                // Если найдём на странице сообщение "Простите...", то завершим парсинг этой категории
+                try {
+                    wait.until(ExpectedConditions.presenceOfElementLocated((By.xpath("//div[text()='Простите, произошла ошибка. Попробуйте обновить страницу или вернуться на шаг назад.']"))));
+                    break;
                 } catch (Exception e) {
-                    // Обработка случаев, когда элементы не могут быть найдены
-                    System.err.println("Ошибка при извлечении данных для товара: " + e.getMessage());
+                    // Ошибка поиска элемента ожидаема
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Ошибка при извлечении данных для товара: " + e.getMessage());
+        }
+    }
 
-            // Прокрутка вниз для загрузки новых товаров
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            js.executeScript("window.scrollBy(0, document.body.scrollHeight);");
-
-            // Ожидание загрузки новых товаров
-            Thread.sleep(2000); // Отрегулируйте эту задержку в зависимости от производительности страницы
-
-            // Проверка, были ли загружены новые товары, путем сравнения текущего размера списка товаров
-            int currentSize = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root")).size();
-            hasMoreData = currentSize > seenProducts.size();
+    private static long getScrollHeight(JavascriptExecutor jsExecutor) {
+        Object result = jsExecutor.executeScript("return document.body.scrollHeight");
+        if (result instanceof Number) {
+            return ((Number) result).longValue();
+        } else {
+            throw new IllegalStateException("Не удалось получить высоту страницы.");
         }
     }
 }

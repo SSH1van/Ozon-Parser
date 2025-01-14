@@ -12,7 +12,7 @@ public class Main {
     private static final String OZON_CATEGORY_URL = "https://www.ozon.ru/category/smartfony-15502/apple-26303000/";
 
     static String relativePath = "User Data";
-    static long timeRefresh = 2000;
+    static long timeRefresh = 5000;
     static long timeSleep = 3;
     static boolean headless = false;
 
@@ -37,7 +37,7 @@ public class Main {
             DatabaseManager.createDatabase();
 
             // Получаем название, цену и ссылку
-            actions.getProducts();
+            actions.scrollAndClick();
 
         } catch (Exception e) {
             LOGGER.severe("Произошла ошибка: " + e.getMessage());
