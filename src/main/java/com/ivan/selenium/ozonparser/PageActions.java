@@ -114,7 +114,7 @@ public class PageActions {
             TimeUnit.SECONDS.sleep(2);
 
             wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("//div[text()='Простите, произошла ошибка. Попробуйте обновить страницу или вернуться на шаг назад.']")
+                    By.cssSelector("[data-widget='searchResultsError']")
             ));
             return false;
         } catch (Exception e) {
