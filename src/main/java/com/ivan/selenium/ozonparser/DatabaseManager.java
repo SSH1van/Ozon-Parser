@@ -1,9 +1,27 @@
 package com.ivan.selenium.ozonparser;
+
+import java.io.File;
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class DatabaseManager {
-    private static final String DB_URL = "jdbc:sqlite:products.db";
     private static String tableName = "unknown";
+    private static String DB_URL;
+
+    public static void initializeDatabasePath() {
+        String folderName = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss").format(new Date());
+        File resultsDir = new File("results");
+        File dateDir = new File(resultsDir, folderName);
+
+        if (!dateDir.exists() && !dateDir.mkdirs()) {
+            System.err.println("Не удалось создать директорию: " + dateDir.getAbsolutePath());
+            throw new RuntimeException("Не удалось создать директорию для базы данных");
+        }
+
+        String dbPath = new File(dateDir, "products.db").getAbsolutePath();
+        DB_URL = "jdbc:sqlite:" + dbPath;
+    }
 
     public static void createTable (String tempTableName) {
         tableName = tempTableName;

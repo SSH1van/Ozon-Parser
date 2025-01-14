@@ -31,6 +31,9 @@ public class Main {
             PageActions actions = new PageActions(driver);
             StringProcessing stringProcessing = new StringProcessing();
 
+            // Создание директорий и определение пути к БД
+            DatabaseManager.initializeDatabasePath();
+
             for (String url : urls) {
                 // Открываем ссылку на товар
                 actions.openUrl(url, timeSleep);
