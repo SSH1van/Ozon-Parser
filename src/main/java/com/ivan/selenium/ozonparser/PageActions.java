@@ -1,13 +1,11 @@
 package com.ivan.selenium.ozonparser;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
 
@@ -26,36 +24,6 @@ public class PageActions {
             // Ошибка загрузки страницы ожидаема
         }
         TimeUnit.SECONDS.sleep(timeSleep);
-    }
-
-    public void getProducts() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement paginatorContent = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("paginatorContent")));
-        List<WebElement> productTiles = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
-
-        for (WebElement productTile : productTiles) {
-            try {
-                // Получение цены товара
-                String productPriceString;
-                try {
-                    productPriceString = productTile.findElement(By.cssSelector(".tsHeadline500Medium")).getText();
-                }
-                catch (Exception e) {
-                    // Если товара нет в наличии
-                    continue;
-                }
-                productPriceString = productPriceString.substring(0, productPriceString.length() - 1).replaceAll(" ", "");
-                int productPrice = Integer.parseInt(productPriceString);
-
-                // Получение ссылки на товар
-                String productLink = "https://www.ozon.ru" + productTile.findElement(By.cssSelector(".tile-clickable-element")).getDomAttribute("href");
-
-                DatabaseManager.insertProduct(productPrice, productLink);
-            } catch (Exception e) {
-                System.err.println("Ошибка при извлечении данных для товара: " + e.getMessage());
-            }
-        }
-        System.out.println("Страница записана в базу данных");
     }
 
     public void scrollAndClick () {
@@ -95,10 +63,33 @@ public class PageActions {
     }
 
     private void collectPageData() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
         try {
-            getProducts();
+            WebElement paginatorContent = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("paginatorContent")));
+            List<WebElement> productTiles = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
+
+            for (WebElement productTile : productTiles) {
+                try {
+                    // Получение цены товара
+                    WebElement priceElement = productTile.findElement(By.cssSelector(".tsHeadline500Medium"));
+                    String productPriceString = priceElement.getText().replaceAll("\\D", ""); // Удаление всех нецифровых символов
+                    int productPrice = Integer.parseInt(productPriceString);
+
+                    // Получение ссылки на товар
+                    String productLink = "https://www.ozon.ru" + Objects.requireNonNull(productTile.findElement(By.cssSelector(".tile-clickable-element")).getDomAttribute("href")).split("\\?")[0];
+
+                    DatabaseManager.insertProduct(productPrice, productLink);
+
+                } catch (Exception e) {
+                    // Ошибка получения цены ожидаема
+                }
+            }
+            System.out.println("Страница записана в базу данных");
+        } catch (TimeoutException e) {
+            System.err.println("Таймаут ожидания элемента paginatorContent: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("Ошибка при сборе данных: " + e.getMessage());
+            System.err.println("Общая ошибка: " + e.getMessage());
         }
     }
 

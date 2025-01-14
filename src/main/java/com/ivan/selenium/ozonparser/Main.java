@@ -52,6 +52,5 @@ public class Main {
         } finally {
             driverManager.cleanUp();
         }
-
     }
 }
