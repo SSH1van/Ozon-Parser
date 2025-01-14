@@ -62,47 +62,64 @@ public class PageActions {
         int timeWait = 200;
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(timeWait));
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-        long lastHeight = getScrollHeight(jsExecutor);
-        int iteretions = 0;
 
         try {
             while (true) {
-                // Прокручиваем страницу вниз
-                jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
-                TimeUnit.MILLISECONDS.sleep(timeWait);
+                scrollToBottom(jsExecutor, timeWait);
 
-                System.out.println(iteretions);
-                long newHeight = getScrollHeight(jsExecutor);
-                if (newHeight != lastHeight) {
-                    lastHeight = newHeight;
-                    iteretions = 0;
-                    continue;
-                } else if (iteretions < 15) {
-                    iteretions++;
-                    continue;
-                }
-                iteretions = 0;
-
-                // Получаем данные страницы и записываем в таблицу
-                getProducts();
-
-                // Прокручиваем экран к кнопке "Дальше" и нажимаем на неё для перехода на следующую страницу
-                WebElement nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
-                jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
-                jsExecutor.executeScript("window.scrollBy(0, -200);");
-                nextButton.click();
-                TimeUnit.SECONDS.sleep(2);
-
-                // Если найдём на странице сообщение "Простите...", то завершим парсинг этой категории
-                try {
-                    wait.until(ExpectedConditions.presenceOfElementLocated((By.xpath("//div[text()='Простите, произошла ошибка. Попробуйте обновить страницу или вернуться на шаг назад.']"))));
+                collectPageData();
+                if (!navigateToNextPage(jsExecutor, wait)) {
                     break;
-                } catch (Exception e) {
-                    // Ошибка поиска элемента ожидаема
                 }
             }
         } catch (Exception e) {
-            System.err.println("Ошибка при извлечении данных для товара: " + e.getMessage());
+            System.err.println("Ошибка при выполнении scrollAndClick: " + e.getMessage());
+        }
+    }
+
+    private void scrollToBottom(JavascriptExecutor jsExecutor, int timeWait) throws InterruptedException {
+        long lastHeight = getScrollHeight(jsExecutor);
+        int iterations = 0;
+
+        while (true) {
+            jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+            TimeUnit.MILLISECONDS.sleep(timeWait);
+
+            long newHeight = getScrollHeight(jsExecutor);
+            if (newHeight != lastHeight) {
+                lastHeight = newHeight;
+                iterations = 0;
+            } else if (iterations < 15) {
+                iterations++;
+            } else {
+                return;
+            }
+        }
+    }
+
+    private void collectPageData() {
+        try {
+            getProducts();
+        } catch (Exception e) {
+            System.err.println("Ошибка при сборе данных: " + e.getMessage());
+        }
+    }
+
+    private boolean navigateToNextPage(JavascriptExecutor jsExecutor, WebDriverWait wait) {
+        try {
+            WebElement nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
+            jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
+            jsExecutor.executeScript("window.scrollBy(0, -200);");
+            nextButton.click();
+            TimeUnit.SECONDS.sleep(2);
+
+            wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//div[text()='Простите, произошла ошибка. Попробуйте обновить страницу или вернуться на шаг назад.']")
+            ));
+            return false;
+        } catch (Exception e) {
+            // Ошибка поиска элемента ожидаема
+            return true;
         }
     }
 
