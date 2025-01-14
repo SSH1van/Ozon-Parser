@@ -9,14 +9,7 @@ import java.util.logging.Logger;
 
 public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
-
-    private static final List<String> urls = List.of(
-            "https://www.ozon.ru/category/smartfony-15502/samsung-24565087/?__rr=1&page=801",
-            "https://www.ozon.ru/category/smartfony-15502/apple-26303000/?__rr=2&page=801"
-    );
-
-//    private static final String OZON_CATEGORY_URL = "https://www.ozon.ru/category/smartfony-15502/samsung-24565087/?__rr=1&page=801";
-//    private static final String OZON_CATEGORY_URL = "https://www.ozon.ru/category/smartfony-15502/apple-26303000/";
+    private static final List<String> urls = CsvToUrls.readUrlsFromCsv("urls.csv");
 
     static String relativePath = "User Data";
     static long timeRefresh = 5000;
