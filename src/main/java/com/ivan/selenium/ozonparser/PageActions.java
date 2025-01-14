@@ -64,14 +64,11 @@ public class PageActions {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
 
         try {
-            while (true) {
+            do {
                 scrollToBottom(jsExecutor, timeWait);
 
                 collectPageData();
-                if (!navigateToNextPage(jsExecutor, wait)) {
-                    break;
-                }
-            }
+            } while (navigateToNextPage(jsExecutor, wait));
         } catch (Exception e) {
             System.err.println("Ошибка при выполнении scrollAndClick: " + e.getMessage());
         }
