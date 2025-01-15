@@ -33,8 +33,7 @@ public class PageActions {
 
         try {
             do {
-                scrollToBottom(jsExecutor, timeWait);
-
+                if (scrollToBottom(jsExecutor, timeWait)) { return; }
                 collectPageData();
             } while (navigateToNextPage(jsExecutor, wait));
         } catch (Exception e) {
@@ -42,11 +41,18 @@ public class PageActions {
         }
     }
 
-    private void scrollToBottom(JavascriptExecutor jsExecutor, int timeWait) throws InterruptedException {
+    private boolean scrollToBottom(JavascriptExecutor jsExecutor, int timeWait) throws InterruptedException {
         long lastHeight = getScrollHeight(jsExecutor);
         int iterations = 0;
 
         while (true) {
+            try {
+                driver.findElement(By.xpath("//button[text()='Обновить']"));
+                System.out.println("Блокировка экрана!");
+                return true;
+            } catch (Exception e) {
+                // Ошибка поиска экрана блокировки ожидаема
+            }
             jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
             TimeUnit.MILLISECONDS.sleep(timeWait);
 
@@ -54,10 +60,10 @@ public class PageActions {
             if (newHeight != lastHeight) {
                 lastHeight = newHeight;
                 iterations = 0;
-            } else if (iterations < 15) {
+            } else if (iterations < 12) {
                 iterations++;
             } else {
-                return;
+                return false;
             }
         }
     }
@@ -80,7 +86,6 @@ public class PageActions {
                     String productLink = "https://www.ozon.ru" + Objects.requireNonNull(productTile.findElement(By.cssSelector(".tile-clickable-element")).getDomAttribute("href")).split("\\?")[0];
 
                     DatabaseManager.insertProduct(productPrice, productLink);
-
                 } catch (Exception e) {
                     // Ошибка получения цены ожидаема
                 }
@@ -93,20 +98,27 @@ public class PageActions {
         }
     }
 
-    private boolean navigateToNextPage(JavascriptExecutor jsExecutor, WebDriverWait wait) {
+    private boolean navigateToNextPage(JavascriptExecutor jsExecutor, WebDriverWait wait) throws InterruptedException {
+        WebElement nextButton;
         try {
-            WebElement nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
-            jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
-            jsExecutor.executeScript("window.scrollBy(0, -200);");
-            nextButton.click();
-            TimeUnit.SECONDS.sleep(2);
+            nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
+        } catch (Exception e) {
+            // Отсутствие следующей страницы
+            return false;
+        }
 
+        jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
+        jsExecutor.executeScript("window.scrollBy(0, -200);");
+        nextButton.click();
+        TimeUnit.SECONDS.sleep(2);
+
+        try {
             wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.cssSelector("[data-widget='searchResultsError']")
             ));
             return false;
         } catch (Exception e) {
-            // Ошибка поиска элемента ожидаема
+            // Отсутствие контента на новой странице
             return true;
         }
     }
