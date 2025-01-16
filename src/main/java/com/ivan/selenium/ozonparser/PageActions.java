@@ -26,6 +26,11 @@ public class PageActions {
         TimeUnit.SECONDS.sleep(timeSleep);
     }
 
+    public String extractCategory() {
+        WebElement headerElement = driver.findElement(By.cssSelector("[data-widget='resultsHeader'] h1"));
+        return headerElement.getText();
+    }
+
     public void scrollAndClick () {
         int timeWait = 200;
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(timeWait));

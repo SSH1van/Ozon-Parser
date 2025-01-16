@@ -29,7 +29,6 @@ public class Main {
 
         try {
             PageActions actions = new PageActions(driver);
-            StringProcessing stringProcessing = new StringProcessing();
 
             // Создание директорий и определение пути к БД
             DatabaseManager.initializeDatabasePath();
@@ -39,7 +38,7 @@ public class Main {
                 actions.openUrl(url, timeSleep);
 
                 // Получаем название таблицы
-                String categoryName = stringProcessing.extractCategory(url);
+                String categoryName = actions.extractCategory();
 
                 // Создать базу данных и таблицу
                 DatabaseManager.createTable(categoryName);
