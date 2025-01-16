@@ -32,7 +32,7 @@ public class DatabaseManager {
                     String createTableSQL = "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
                             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                             "price INTEGER NOT NULL, " +
-                            "link TEXT NOT NULL);";
+                            "link TEXT NOT NULL UNIQUE);";
                     stmt.execute(createTableSQL);
                 }
             }
@@ -49,7 +49,11 @@ public class DatabaseManager {
             pstmt.setString(2, link);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Ошибка добавления продукта: " + e.getMessage());
+            if (e.getSQLState().startsWith("23")) { // Код ошибки уникального ограничения
+                System.err.println("Продукт с такой ссылкой уже существует: " + link);
+            } else {
+                System.err.println("Ошибка добавления продукта: " + e.getMessage());
+            }
         }
     }
 }
