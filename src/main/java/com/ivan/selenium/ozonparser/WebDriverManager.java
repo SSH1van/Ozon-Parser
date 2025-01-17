@@ -1,23 +1,29 @@
 package com.ivan.selenium.ozonparser;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.Cookie;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.File;
 import java.nio.file.Paths;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebDriverManager {
     private static final Logger LOGGER = Logger.getLogger(WebDriverManager.class.getName());
-    private WebDriver driver;
+    private static WebDriver driver;
 
     public WebDriver initDriver(ChromeOptions options) {
         driver = new ChromeDriver(options);
@@ -80,10 +86,12 @@ public class WebDriverManager {
     }
 
     // Опции для Chrome
-    public static ChromeOptions createOptions(String relativePath, boolean headless) {
-        String absolutePath = Paths.get(relativePath).toAbsolutePath().toString();
-
+    public static ChromeOptions createOptions(boolean headless) {
         ChromeOptions chromeOptions = new ChromeOptions();
+
+        // Указываем путь к chromedriver
+        String driverPath = Paths.get("chromedriver/chromedriver.exe").toAbsolutePath().toString();
+        System.setProperty("webdriver.chrome.driver", driverPath);
 
         // Убираем заметные следы Selenium
         chromeOptions.addArguments("--disable-blink-features=AutomationControlled");
@@ -101,10 +109,8 @@ public class WebDriverManager {
         // Интеграция ChromeOptions с DesiredCapabilities
         chromeOptions.merge(caps);
 
-        // Выбираем user-agent и user-data
+        // Выбираем user-agent
         chromeOptions.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36");
-        chromeOptions.addArguments("user-data-dir=" + absolutePath);
-        chromeOptions.addArguments("profile-directory=Default");
 
         if (headless) {
             chromeOptions.addArguments("--headless=new");
@@ -112,5 +118,37 @@ public class WebDriverManager {
         }
 
         return chromeOptions;
+    }
+
+    public static void loadCookies(String cookiesFilePath) {
+        try {
+            // Чтение файла cookies.json
+            ObjectMapper mapper = new ObjectMapper();
+            List<Map<String, Object>> cookies = mapper.readValue(new File(cookiesFilePath), new TypeReference<List<Map<String, Object>>>() {});
+
+            for (Map<String, Object> cookieMap : cookies) {
+                String name = (String) cookieMap.get("name");
+                String value = (String) cookieMap.get("value");
+                String domain = (String) cookieMap.get("domain");
+                String path = (String) cookieMap.get("path");
+                Long expiry = cookieMap.get("expiry") != null ? Long.valueOf(cookieMap.get("expiry").toString()) : null;
+                boolean isSecure = cookieMap.get("secure") != null && (Boolean) cookieMap.get("secure");
+
+                Cookie cookie = new Cookie.Builder(name, value)
+                        .domain(domain)
+                        .path(path)
+                        .expiresOn(expiry != null ? new java.util.Date(expiry * 1000) : null)
+                        .isSecure(isSecure)
+                        .build();
+
+                driver.manage().addCookie(cookie);
+            }
+
+            // Обновление страницы для применения куков
+            driver.navigate().refresh();
+
+        } catch (IOException e) {
+            System.out.println("Возникла ошибка при записи куки файлов: " + e.getMessage());
+        }
     }
 }

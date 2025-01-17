@@ -11,14 +11,13 @@ public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final List<String> urls = CsvToUrls.readUrlsFromCsv("urls.csv");
 
-    static String relativePath = "User Data";
     static long timeRefresh = 5000;
-    static long timeSleep = 0;
-    static boolean headless = false;
+    static long timeSleep = 1;
+    static boolean headless = true;
 
     public static void main(String[] args) {
         WebDriverManager driverManager = new WebDriverManager();
-        ChromeOptions options = WebDriverManager.createOptions(relativePath, headless);
+        ChromeOptions options = WebDriverManager.createOptions(headless);
         WebDriver driver = driverManager.initDriver(options);
         driver.manage().timeouts().pageLoadTimeout(Duration.ofMillis(timeRefresh));
 
@@ -36,6 +35,9 @@ public class Main {
             for (String url : urls) {
                 // Открываем ссылку на товар
                 actions.openUrl(url, timeSleep);
+
+                // Загрузка куков из файла
+                WebDriverManager.loadCookies("cookies.json");
 
                 // Получаем название таблицы
                 String categoryName = actions.extractCategory();
