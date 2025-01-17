@@ -124,7 +124,7 @@ public class WebDriverManager {
         try {
             // Чтение файла cookies.json
             ObjectMapper mapper = new ObjectMapper();
-            List<Map<String, Object>> cookies = mapper.readValue(new File(cookiesFilePath), new TypeReference<List<Map<String, Object>>>() {});
+            List<Map<String, Object>> cookies = mapper.readValue(new File(cookiesFilePath), new TypeReference<>() {});
 
             for (Map<String, Object> cookieMap : cookies) {
                 String name = (String) cookieMap.get("name");
