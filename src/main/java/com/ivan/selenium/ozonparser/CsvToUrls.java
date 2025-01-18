@@ -12,8 +12,8 @@ public class CsvToUrls {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    urls.add(line.trim());
+                if (!line.trim().isEmpty() && line.contains("https://")) {
+                    urls.add(line.trim().substring(0, line.length() - 1));
                 }
             }
         } catch (IOException e) {
