@@ -1,0 +1,16 @@
+sudo apt update && apt upgrade -y
+sudo apt install openjdk-17-jdk -y
+java --version
+
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+sudo apt --fix-broken install
+sudo apt update && apt upgrade -y
+google-chrome --version
+
+wget https://storage.googleapis.com/chrome-for-testing-public/132.0.6834.83/linux64/chromedriver-linux64.zip
+sudo apt install unzip
+unzip chromedriver_linux64.zip
+
+
+# chromedrivers - https://googlechromelabs.github.io/chrome-for-testing/#stable
