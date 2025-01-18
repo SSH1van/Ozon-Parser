@@ -91,9 +91,11 @@ public class WebDriverManager {
 
         // Указываем путь к chromedriver
         String driverPath = Paths.get("chromedriver/chromedriver.exe").toAbsolutePath().toString();
+        // String driverPath = Paths.get("chromedriver-linux64/chromedriver").toAbsolutePath().toString();
         System.setProperty("webdriver.chrome.driver", driverPath);
 
         // Убираем заметные следы Selenium
+        // chromeOptions.addArguments("--no-sandbox");
         chromeOptions.addArguments("--disable-blink-features=AutomationControlled");
         chromeOptions.addArguments("--disable-infobars");
         chromeOptions.addArguments("--disable-notifications");
