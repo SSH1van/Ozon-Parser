@@ -4,13 +4,14 @@ java --version
 
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo dpkg -i google-chrome-stable_current_amd64.deb
-sudo apt --fix-broken install
+sudo apt --fix-broken install -y
 sudo apt update && apt upgrade -y
 google-chrome --version
 
 wget https://storage.googleapis.com/chrome-for-testing-public/132.0.6834.83/linux64/chromedriver-linux64.zip
 sudo apt install unzip
 unzip chromedriver-linux64.zip
+chmod +x chromedriver-linux64/chromedriver
 
 
 # chromedrivers - https://googlechromelabs.github.io/chrome-for-testing/#stable
