@@ -42,7 +42,7 @@ public class PageActions {
             do {
                 if (scrollToBottom(jsExecutor, timeWait, random)) { return; }
                 collectPageData();
-            } while (navigateToNextPage(jsExecutor, wait));
+            } while (navigateToNextPage(jsExecutor, wait, random));
         } catch (Exception e) {
             System.err.println("Ошибка при выполнении scrollAndClick: " + e.getMessage());
         }
@@ -50,28 +50,48 @@ public class PageActions {
 
     private boolean scrollToBottom(JavascriptExecutor jsExecutor, int timeWait, Random random) throws InterruptedException {
         long lastHeight = getScrollHeight(jsExecutor);
-        int iterations = 0;
+        int i = 0;
 
         while (true) {
-            try {
-                driver.findElement(By.xpath("//button[text()='Обновить']"));
-                System.out.println("Блокировка экрана!");
-                return true;
-            } catch (Exception e) {
-                // Ошибка поиска экрана блокировки ожидаема
-            }
+            if (checkLockScreen()) return true;
+
             jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
             TimeUnit.MILLISECONDS.sleep(timeWait + random.nextInt(100));
 
             long newHeight = getScrollHeight(jsExecutor);
             if (newHeight != lastHeight) {
                 lastHeight = newHeight;
-                iterations = 0;
-            } else if (iterations < 12) {
-                iterations++;
+                i = 0;
+            } else if (i < 12) {
+                i++;
             } else {
                 return false;
             }
+        }
+    }
+
+    public boolean checkLockScreen() {
+        try {
+            driver.findElement(By.xpath("//button[text()='Обновить']"));
+            System.out.println("Блокировка экрана!");
+
+            Random random = new Random();
+            for (int i = 0; i < 10;  i++) {
+                driver.manage().deleteAllCookies();
+                driver.navigate().refresh();
+                TimeUnit.MILLISECONDS.sleep(random.nextInt(1000) + random.nextInt(500));
+
+                try {
+                    driver.findElement(By.xpath("//button[text()='Обновить']"));
+                } catch (Exception e) {
+                    System.out.println("Блокировка экрана снята!");
+                    throw new NoSuchElementException("Экран блокировки не найден");
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            // Ошибка поиска экрана блокировки ожидаема
+            return false;
         }
     }
 
@@ -105,7 +125,7 @@ public class PageActions {
         }
     }
 
-    private boolean navigateToNextPage(JavascriptExecutor jsExecutor, WebDriverWait wait) throws InterruptedException {
+    private boolean navigateToNextPage(JavascriptExecutor jsExecutor, WebDriverWait wait, Random random) throws InterruptedException {
         WebElement nextButton;
         try {
             nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
@@ -116,8 +136,12 @@ public class PageActions {
 
         jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
         jsExecutor.executeScript("window.scrollBy(0, -200);");
-        nextButton.click();
-        TimeUnit.SECONDS.sleep(2);
+        try {
+            nextButton.click();
+        } catch (Exception TimeoutException) {
+            // Ошибка загрузки страницы ожидаема
+        }
+        TimeUnit.MILLISECONDS.sleep(2000 + random.nextInt(100));
 
         try {
             wait.until(ExpectedConditions.presenceOfElementLocated(
