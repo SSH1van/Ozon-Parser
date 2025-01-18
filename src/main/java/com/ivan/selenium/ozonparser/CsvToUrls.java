@@ -13,7 +13,7 @@ public class CsvToUrls {
             String line;
             while ((line = br.readLine()) != null) {
                 if (!line.trim().isEmpty() && line.contains("https://")) {
-                    urls.add(line.trim().substring(0, line.length() - 1));
+                    urls.add(line.trim());
                 }
             }
         } catch (IOException e) {
