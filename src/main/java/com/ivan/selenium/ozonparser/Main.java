@@ -11,15 +11,15 @@ public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final List<String> urls = CsvToUrls.readUrlsFromCsv("urls.csv");
 
-    static long timeRefresh = 5000;
-    static long timeSleep = 1;
+    static long timeRefresh = 20;
+    static long timeSleep = 5;
     static boolean headless = true;
 
     public static void main(String[] args) {
         WebDriverManager driverManager = new WebDriverManager();
         ChromeOptions options = WebDriverManager.createOptions(headless);
         WebDriver driver = driverManager.initDriver(options);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofMillis(timeRefresh));
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(timeRefresh));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Программа завершена. Освобождаем ресурсы...");
@@ -49,7 +49,7 @@ public class Main {
                 actions.scrollAndClick();
             }
         } catch (Exception e) {
-            LOGGER.severe("Произошла ошибка: " + e.getMessage());
+            LOGGER.severe("Ошибка при выполнении main функции: " + e.getMessage());
         } finally {
             driverManager.cleanUp();
         }
