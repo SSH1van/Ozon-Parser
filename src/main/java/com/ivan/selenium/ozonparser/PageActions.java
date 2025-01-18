@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
+import java.util.Random;
 
 public class PageActions {
     private final WebDriver driver;
@@ -35,10 +36,11 @@ public class PageActions {
         int timeWait = 200;
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(timeWait));
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        Random random = new Random();
 
         try {
             do {
-                if (scrollToBottom(jsExecutor, timeWait)) { return; }
+                if (scrollToBottom(jsExecutor, timeWait, random)) { return; }
                 collectPageData();
             } while (navigateToNextPage(jsExecutor, wait));
         } catch (Exception e) {
@@ -46,7 +48,7 @@ public class PageActions {
         }
     }
 
-    private boolean scrollToBottom(JavascriptExecutor jsExecutor, int timeWait) throws InterruptedException {
+    private boolean scrollToBottom(JavascriptExecutor jsExecutor, int timeWait, Random random) throws InterruptedException {
         long lastHeight = getScrollHeight(jsExecutor);
         int iterations = 0;
 
@@ -59,7 +61,7 @@ public class PageActions {
                 // Ошибка поиска экрана блокировки ожидаема
             }
             jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
-            TimeUnit.MILLISECONDS.sleep(timeWait);
+            TimeUnit.MILLISECONDS.sleep(timeWait + random.nextInt(100));
 
             long newHeight = getScrollHeight(jsExecutor);
             if (newHeight != lastHeight) {
