@@ -36,6 +36,9 @@ public class Main {
                 // Открываем ссылку на товар
                 actions.openUrl(url, timeSleep);
 
+                // Загрузка куков из файла
+                WebDriverManager.loadCookies("cookies.json");
+
                 // Проверка на наличие экрана блокировки
                 if (actions.checkLockScreen()) return;
 
