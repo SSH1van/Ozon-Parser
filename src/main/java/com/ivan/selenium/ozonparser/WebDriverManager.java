@@ -92,6 +92,7 @@ public class WebDriverManager {
         // Указываем путь к chromedriver
         String driverPath = Paths.get("chromedriver/chromedriver.exe").toAbsolutePath().toString();
         //String driverPath = Paths.get("chromedriver-linux64/chromedriver").toAbsolutePath().toString();
+        String userDataDirPath = Paths.get("user-data-dir").toAbsolutePath().toString();
         System.setProperty("webdriver.chrome.driver", driverPath);
 
         // Убираем заметные следы Selenium
@@ -99,6 +100,10 @@ public class WebDriverManager {
         chromeOptions.addArguments("--disable-blink-features=AutomationControlled");
         chromeOptions.addArguments("--disable-infobars");
         chromeOptions.addArguments("--disable-notifications");
+        chromeOptions.addArguments("--window-size=1920,1080");
+        chromeOptions.addArguments("--lang=ru");
+        chromeOptions.addArguments("--disable-dev-shm-usage");
+        chromeOptions.addArguments("user-data-dir=" + userDataDirPath);
         chromeOptions.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
         chromeOptions.setExperimentalOption("useAutomationExtension", false);
 
@@ -112,7 +117,8 @@ public class WebDriverManager {
         chromeOptions.merge(caps);
 
         // Выбираем user-agent
-        chromeOptions.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36");
+        chromeOptions.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+        //chromeOptions.addArguments("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
 
         if (headless) {
             chromeOptions.addArguments("--headless=new");
