@@ -36,27 +36,28 @@ public class PageActions {
         int timeWait = 200;
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(timeWait));
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        Actions actions = new Actions(driver);
         Random random = new Random();
 
         try {
             do {
-                if (scrollToBottom(jsExecutor, timeWait, random)) { return; }
+                if (scrollToBottom(jsExecutor, actions, timeWait, random)) { return; }
                 collectPageData();
-            } while (navigateToNextPage(jsExecutor, wait, random));
+            } while (navigateToNextPage(actions, wait, random));
         } catch (Exception e) {
             System.err.println("Ошибка при выполнении scrollAndClick: " + e.getMessage());
         }
     }
 
-    private boolean scrollToBottom(JavascriptExecutor jsExecutor, int timeWait, Random random) throws InterruptedException {
+    private boolean scrollToBottom(JavascriptExecutor jsExecutor, Actions actions, int timeWait, Random random) throws InterruptedException {
         long lastHeight = getScrollHeight(jsExecutor);
         int i = 0;
 
         while (true) {
-            if (checkLockScreen()) return true;
-
-            jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+            actions.scrollByAmount(0, 1000 + random.nextInt(800)).perform();
             TimeUnit.MILLISECONDS.sleep(timeWait + random.nextInt(100));
+
+            if (checkLockScreen()) return true;
 
             long newHeight = getScrollHeight(jsExecutor);
             if (newHeight != lastHeight) {
@@ -134,8 +135,7 @@ public class PageActions {
             return false;
         }
 
-        jsExecutor.executeScript("arguments[0].scrollIntoView(true);", nextButton);
-        jsExecutor.executeScript("window.scrollBy(0, -200);");
+        actions.moveToElement(nextButton).perform();
         try {
             nextButton.click();
         } catch (Exception TimeoutException) {
