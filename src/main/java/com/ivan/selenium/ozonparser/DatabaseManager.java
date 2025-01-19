@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class DatabaseManager {
-    private static String tableName = "unknown";
+    public static String tableName = "unknown";
     private static String DB_URL;
 
     public static void initializeDatabasePath() {
