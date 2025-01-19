@@ -1,23 +1,17 @@
 package com.ivan.selenium.ozonparser;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
-import org.openqa.selenium.Cookie;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.io.File;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -126,32 +120,5 @@ public class WebDriverManager {
         }
 
         return chromeOptions;
-    }
-
-    public static void loadCookies(String cookiesFilePath) {
-        try {
-            // Чтение файла cookies.json
-            ObjectMapper mapper = new ObjectMapper();
-            List<Map<String, Object>> cookies = mapper.readValue(new File(cookiesFilePath), new TypeReference<List<Map<String, Object>>>() {});
-            for (Map<String, Object> cookieMap : cookies) {
-                String name = (String) cookieMap.get("name");
-                String value = (String) cookieMap.get("value");
-                String domain = (String) cookieMap.get("domain");
-                String path = (String) cookieMap.get("path");
-                Long expiry = cookieMap.get("expiry") != null ? Long.valueOf(cookieMap.get("expiry").toString()) : null;
-                boolean isSecure = cookieMap.get("secure") != null && (Boolean) cookieMap.get("secure");
-                Cookie cookie = new Cookie.Builder(name, value)
-                        .domain(domain)
-                        .path(path)
-                        .expiresOn(expiry != null ? new java.util.Date(expiry * 1000) : null)
-                        .isSecure(isSecure)
-                        .build();
-                driver.manage().addCookie(cookie);
-            }
-            // Обновление страницы для применения куков
-            driver.navigate().refresh();
-        } catch (IOException e) {
-            System.out.println("Возникла ошибка при записи куки файлов: " + e.getMessage());
-        }
     }
 }
