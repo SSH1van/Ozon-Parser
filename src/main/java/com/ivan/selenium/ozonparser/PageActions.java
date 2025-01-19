@@ -1,6 +1,7 @@
 package com.ivan.selenium.ozonparser;
 
 import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -32,7 +33,7 @@ public class PageActions {
         return headerElement.getText();
     }
 
-    public void scrollAndClick () {
+    public void scrollAndClick() {
         int timeWait = 200;
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(timeWait));
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
@@ -118,7 +119,7 @@ public class PageActions {
                     // Ошибка получения цены ожидаема
                 }
             }
-            System.out.println("Страница записана в базу данных");
+            System.out.println("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
         } catch (TimeoutException e) {
             System.err.println("Таймаут ожидания элемента paginatorContent: " + e.getMessage());
         } catch (Exception e) {
@@ -126,7 +127,7 @@ public class PageActions {
         }
     }
 
-    private boolean navigateToNextPage(JavascriptExecutor jsExecutor, WebDriverWait wait, Random random) throws InterruptedException {
+    private boolean navigateToNextPage(Actions actions, WebDriverWait wait, Random random) throws InterruptedException {
         WebElement nextButton;
         try {
             nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
@@ -139,6 +140,7 @@ public class PageActions {
         try {
             nextButton.click();
         } catch (Exception TimeoutException) {
+            System.out.println("Слишком долгий переход на страницу по кнопке 'Дальше'");
             // Ошибка загрузки страницы ожидаема
         }
         TimeUnit.MILLISECONDS.sleep(2000 + random.nextInt(100));
