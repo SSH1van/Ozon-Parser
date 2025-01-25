@@ -1,4 +1,4 @@
-package com.ivan.selenium.ozonparser;
+package com.ivan.selenium.ozonparser.data;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
