@@ -24,7 +24,7 @@ public class WebDriverManager {
     private static final Logger LOGGER = Logger.getLogger(WebDriverManager.class.getName());
     private static WebDriver driver;
 
-    private static int currentIndex = 0;
+    private static int currentIndex = -1;
     private static final List<String> proxyList = new ArrayList<>();
 
     public WebDriverManager() {

@@ -15,15 +15,15 @@ public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final List<String> urls = CsvToUrls.readUrlsFromCsv("urls.csv");
 
-    static boolean headless = false;
-    static long timeRefresh = 20;
+    static boolean headless = true;
+    static long timeLoad = 20;
     static long timeSleep = 5;
 
     public static void main(String[] args) {
         WebDriverManager driverManager = new WebDriverManager();
         ChromeOptions options = driverManager.createOptions(headless);
         WebDriver driver = driverManager.initDriver(options);
-        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(timeRefresh));
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(timeLoad));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\nПрограмма завершена. Освобождаем ресурсы...");

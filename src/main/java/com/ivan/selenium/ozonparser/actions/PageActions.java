@@ -79,7 +79,7 @@ public class PageActions {
                 //System.out.println(retryCount);
 
                 // Прокручиваем страницу вниз
-                jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+                jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight - 100);");
                 TimeUnit.MILLISECONDS.sleep(waitTimeInMillis + random.nextInt(100));
 
                 // Проверяем, изменилась ли высота страницы
@@ -154,7 +154,8 @@ public class PageActions {
         // Поиск кнопки "Дальше"
         WebElement nextButton;
         try {
-            nextButton = driver.findElement(By.xpath("//div[text()='Дальше']/ancestor::a"));
+            nextButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//div[text()='Дальше']/ancestor::a")));
         } catch (Exception e) {
             // Ошибка поиска ожидаема - отсутствие следующей страницы
             return false;
@@ -193,6 +194,7 @@ public class PageActions {
             wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.cssSelector("[data-widget='searchResultsError']")
             ));
+            System.err.println("Контент на новой странице отсутствует");
             return false;
         } catch (TimeoutException e) {
             // Ошибки нет, страница загрузилась
