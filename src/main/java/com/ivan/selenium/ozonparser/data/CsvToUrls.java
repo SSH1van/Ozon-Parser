@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CsvToUrls {
@@ -19,6 +20,10 @@ public class CsvToUrls {
         } catch (IOException e) {
             System.err.println("Ошибка чтения файла: " + e.getMessage());
         }
+
+        // Перемешиваем список
+        //Collections.shuffle(urls);
+
         return urls;
     }
 }

@@ -3,6 +3,7 @@ package com.ivan.selenium.ozonparser.actions;
 import com.ivan.selenium.ozonparser.data.DatabaseManager;
 
 import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
@@ -41,8 +42,14 @@ public class PageActions {
     }
 
     public String extractCategory() {
-        WebElement headerElement = driver.findElement(By.cssSelector("[data-widget='resultsHeader'] h1"));
-        return headerElement.getText();
+        try {
+            WebElement headerElement = driver.findElement(By.cssSelector("[data-widget='resultsHeader'] h1"));
+            return headerElement.getText();
+        }
+        catch (Exception e) {
+            System.err.println("Ошибка при выполнении extractCategory: " + e.getMessage());
+            return "";
+        }
     }
 
     public void scrollAndClick(String categoryName) {
@@ -59,28 +66,34 @@ public class PageActions {
         }
 
         // \УДАЛИТЬ/ ДЛЯ ТЕСТИРОВАНИЯ ПРОГРАММЫ \УДАЛИТЬ/
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String fileName = categoryName + "_" + timestamp + ".txt";
-        System.out.println("Сохранил страницу при завершении обработки ссылки в scrollAndClick в файл " + fileName);
-        savePageSource(fileName);
+        try {
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            String fileName = categoryName + "_" + timestamp + ".txt";
+            System.out.println("Сохранил страницу при завершении обработки ссылки в scrollAndClick в файл " + fileName);
+            savePageSource(fileName);
+        } catch (Exception e) {
+            System.err.println("Ошибка при сохранении страницы: " + e.getMessage());
+        }
     }
 
     /************************************************
      *   ПРОКРУТКА СТРАНИЦЫ ВНИЗ ПОКА ЭТО ВОЗМОЖНО  *
      ************************************************/
     private boolean scrollToBottom(JavascriptExecutor jsExecutor, Random random) {
-        long lastHeight = getScrollHeight(jsExecutor);
-        int waitTimeInMillis  = 1100;
+        Actions actions = new Actions(driver);
+        long lastHeight = 0;
+        try {
+            lastHeight = getScrollHeight(jsExecutor);
+        } catch (Exception e) {
+            System.err.println("Ошибка при получении высоты страницы: " + e.getMessage());
+        }
+        int waitTimeInMillis  = 800;
         int retryCount = 0;
 
         while (retryCount < MAX_ATTEMPTS) {
             try {
-                // \УДАЛИТЬ/ ДЛЯ ТЕСТИРОВАНИЯ ПРОГРАММЫ \УДАЛИТЬ/
-                //System.out.println(retryCount);
-
-                // Прокручиваем страницу вниз
-                jsExecutor.executeScript("window.scrollTo(0, document.body.scrollHeight - 100);");
-                TimeUnit.MILLISECONDS.sleep(waitTimeInMillis + random.nextInt(100));
+                actions.scrollByAmount(0, 2500 + random.nextInt(500)).perform();
+                TimeUnit.MILLISECONDS.sleep(waitTimeInMillis + random.nextInt(300));
 
                 // Проверяем, изменилась ли высота страницы
                 long newHeight = getScrollHeight(jsExecutor);
@@ -90,8 +103,9 @@ public class PageActions {
                 } else {
                     retryCount++;
                 }
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 System.err.println("Ошибка при выполнении scrollToBottom: " + e.getMessage());
+                retryCount = 0;
             }
         }
         return false;
@@ -110,10 +124,8 @@ public class PageActions {
      *    СБОР ДАННЫХ СО СТРАНИЦЫ И ЗАПИСЬ В БД     *
      ************************************************/
     private void collectPageData() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
         try {
-            WebElement paginatorContent = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("paginatorContent")));
+            WebElement paginatorContent = driver.findElement(By.id("paginatorContent"));
             List<WebElement> productTiles = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
 
             for (WebElement productTile : productTiles) {
@@ -132,16 +144,14 @@ public class PageActions {
                 }
             }
             System.out.println("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
-        } catch (TimeoutException e) {
-            System.err.println("Таймаут ожидания элемента paginatorContent: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Ошибка при выполнении collectPageData: " + e.getMessage());
 
             // \УДАЛИТЬ/ ДЛЯ ТЕСТИРОВАНИЯ ПРОГРАММЫ \УДАЛИТЬ/
             String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
             String fileName = timestamp + ".txt";
             System.out.println("Сохранил таблицу при ошибке получения контента в paginatorContent в файл " + fileName);
             savePageSource(fileName);
-        } catch (Exception e) {
-            System.err.println("Общая ошибка: " + e.getMessage());
         }
     }
 
@@ -157,20 +167,26 @@ public class PageActions {
             nextButton = wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.xpath("//div[text()='Дальше']/ancestor::a")));
         } catch (Exception e) {
+            System.out.println("Ошибка поиска кнопки ожидаема");
             // Ошибка поиска ожидаема - отсутствие следующей страницы
             return false;
         }
 
-        // Скроллинг к кнопке "Дальше"
-        scrollToElement(jsExecutor, nextButton);
+        try {
+            // Скроллинг к кнопке "Дальше"
+            scrollToElement(jsExecutor, nextButton);
 
-        // Нажатие на кнопку "Дальше"
-        if (!clickNextButton(nextButton)) {
+            // Нажатие на кнопку "Дальше"
+            if (!clickNextButton(nextButton)) {
+                return false;
+            }
+
+            // Ожидание новой страницы
+            return waitForNextPage(wait);
+        } catch (Exception e) {
+            System.err.println("Ошибка при выполнении navigateToNextPage: " + e.getMessage());
             return false;
         }
-
-        // Ожидание новой страницы
-        return waitForNextPage(wait);
     }
 
     private void scrollToElement(JavascriptExecutor jsExecutor, WebElement element) {

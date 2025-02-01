@@ -137,12 +137,9 @@ public class WebDriverManager {
             try {
                 File proxyExtension = ProxyAuthExtension.createProxyAuthExtension(proxyHost, proxyPort, proxyUser, proxyPassword);
                 chromeOptions.addExtensions(proxyExtension);
-                LOGGER.info("Используется прокси: " + proxyHost + " на порту " + proxyPort);
             } catch (IOException e) {
                 throw new RuntimeException("Ошибка при создании расширения для прокси: ", e);
             }
-        } else {
-            LOGGER.info("Используется серверный IP");
         }
     }
 

@@ -40,7 +40,6 @@ build/
 ### Project ###
 results
 user-data-dir
-proxyAuthExtension
 config.yaml
 .env
 log
