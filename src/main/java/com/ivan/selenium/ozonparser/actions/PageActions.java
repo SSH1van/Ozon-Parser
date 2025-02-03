@@ -25,10 +25,6 @@ public class PageActions {
     public static WebDriver driver;
     private static final int MAX_ATTEMPTS = 5;
 
-    public PageActions(WebDriver driver) {
-        PageActions.driver = driver;
-    }
-
     /************************************************
      *                БАЗОВЫЕ МЕТОДЫ                *
      ************************************************/

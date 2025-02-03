@@ -10,7 +10,7 @@ public class DatabaseManager {
     private static String DB_URL;
     public static String globalFolderName = "";
 
-    public static void initializeDatabasePath() {
+    public void initializeDatabasePath() {
         String folderName = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss").format(new Date());
         globalFolderName = folderName;
         File resultsDir = new File("results");
@@ -25,7 +25,7 @@ public class DatabaseManager {
         DB_URL = "jdbc:sqlite:" + dbPath;
     }
 
-    public static void createTable (String tempTableName) {
+    public void createTable (String tempTableName) {
         tableName = tempTableName;
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             if (conn != null) {

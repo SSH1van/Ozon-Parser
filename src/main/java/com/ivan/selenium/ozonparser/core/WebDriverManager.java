@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.ArrayList;
@@ -213,6 +214,7 @@ public class WebDriverManager {
         WebDriverManager driverManager = new WebDriverManager();
         ChromeOptions options = driverManager.createOptions(Main.headless);
         PageActions.driver = driverManager.initDriver(options);
+        PageActions.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(Main.timeLoad));
     }
 
     private void deleteRecursively(File file) {
