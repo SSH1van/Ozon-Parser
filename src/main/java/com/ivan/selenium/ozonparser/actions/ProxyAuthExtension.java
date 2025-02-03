@@ -21,34 +21,36 @@ public class ProxyAuthExtension {
                   "minimum_chrome_version": "22.0.0"
                 }""";
 
-        String backgroundJs = "var config = {\n" +
-                "    mode: 'fixed_servers',\n" +
-                "    rules: {\n" +
-                "        singleProxy: {\n" +
-                "            scheme: 'http',\n" +
-                "            host: '" + proxyHost + "',\n" +
-                "            port: parseInt('" + proxyPort + "')\n" +
-                "        },\n" +
-                "        bypassList: ['localhost']\n" +
-                "    }\n" +
-                "};\n" +
-                "\n" +
-                "chrome.proxy.settings.set({value: config, scope: 'regular'}, function() {});\n" +
-                "\n" +
-                "function callbackFn(details) {\n" +
-                "    return {\n" +
-                "        authCredentials: {\n" +
-                "            username: '" + proxyUser + "',\n" +
-                "            password: '" + proxyPassword + "'\n" +
-                "        }\n" +
-                "    };\n" +
-                "}\n" +
-                "\n" +
-                "chrome.webRequest.onAuthRequired.addListener(\n" +
-                "    callbackFn,\n" +
-                "    {urls: ['<all_urls>']},\n" +
-                "    ['blocking']\n" +
-                ");";
+        String backgroundJs = String.format("""
+                var config = {
+                    mode: 'fixed_servers',
+                    rules: {
+                        singleProxy: {
+                            scheme: 'http',
+                            host: '%s',
+                            port: parseInt('%d')
+                        },
+                        bypassList: ['localhost']
+                    }
+                };
+
+                chrome.proxy.settings.set({value: config, scope: 'regular'}, function() {});
+
+                function callbackFn(details) {
+                    return {
+                        authCredentials: {
+                            username: '%s',
+                            password: '%s'
+                        }
+                    };
+                }
+
+                chrome.webRequest.onAuthRequired.addListener(
+                    callbackFn,
+                    {urls: ['<all_urls>']},
+                    ['blocking']
+                );
+                """, proxyHost, proxyPort, proxyUser, proxyPassword);
 
         // Создаем временную папку
         Path tempDir = Files.createTempDirectory("proxyAuthExtension");
