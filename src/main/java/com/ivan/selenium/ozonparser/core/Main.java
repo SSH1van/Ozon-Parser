@@ -1,5 +1,6 @@
 package com.ivan.selenium.ozonparser.core;
 
+import com.ivan.selenium.ozonparser.config.ConfigLoader;
 import com.ivan.selenium.ozonparser.data.CsvToUrls;
 import com.ivan.selenium.ozonparser.actions.PageActions;
 import com.ivan.selenium.ozonparser.data.DatabaseManager;
@@ -15,9 +16,9 @@ public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final List<String> urls = CsvToUrls.readUrlsFromCsv("urls.csv");
 
-    static boolean headless = true;
-    static long timeLoad = 20;
-    static long timeSleep = 5;
+    static boolean headless = ConfigLoader.getBooleanProperty("webdriver.headless");
+    static long timeLoad = ConfigLoader.getLongProperty("webdriver.timeLoad");
+    static long timeSleep = ConfigLoader.getLongProperty("webdriver.timeSleep");
 
     public static void main(String[] args) {
         WebDriverManager driverManager = new WebDriverManager();
