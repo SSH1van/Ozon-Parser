@@ -20,10 +20,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.BufferedWriter;
+import java.util.logging.Logger;
 
 public class PageActions {
     public static WebDriver driver;
     private static final int MAX_ATTEMPTS = 5;
+    private static final Logger LOGGER = Logger.getLogger(PageActions.class.getName());
 
     /************************************************
      *                БАЗОВЫЕ МЕТОДЫ                *
@@ -43,7 +45,7 @@ public class PageActions {
             return headerElement.getText();
         }
         catch (Exception e) {
-            System.err.println("Ошибка при выполнении extractCategory: " + e.getMessage());
+            LOGGER.severe("Ошибка при выполнении extractCategory: " + e.getMessage());
             return "";
         }
     }
@@ -58,17 +60,7 @@ public class PageActions {
                 collectPageData();
             } while (navigateToNextPage(jsExecutor));
         } catch (Exception e) {
-            System.err.println("Ошибка при выполнении scrollAndClick: " + e.getMessage());
-        }
-
-        // \УДАЛИТЬ/ ДЛЯ ТЕСТИРОВАНИЯ ПРОГРАММЫ \УДАЛИТЬ/
-        try {
-            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String fileName = categoryName + "_" + timestamp + ".txt";
-            System.out.println("Сохранил страницу при завершении обработки ссылки в scrollAndClick в файл " + fileName);
-            savePageSource(fileName);
-        } catch (Exception e) {
-            System.err.println("Ошибка при сохранении страницы: " + e.getMessage());
+            LOGGER.severe("Ошибка при выполнении scrollAndClick: " + e.getMessage());
         }
     }
 
@@ -81,7 +73,7 @@ public class PageActions {
         try {
             lastHeight = getScrollHeight(jsExecutor);
         } catch (Exception e) {
-            System.err.println("Ошибка при получении высоты страницы: " + e.getMessage());
+            LOGGER.severe("Ошибка при получении высоты страницы: " + e.getMessage());
         }
         int waitTimeInMillis  = 800;
         int retryCount = 0;
@@ -100,7 +92,7 @@ public class PageActions {
                     retryCount++;
                 }
             } catch (Exception e) {
-                System.err.println("Ошибка при выполнении scrollToBottom: " + e.getMessage());
+                LOGGER.severe("Ошибка при выполнении scrollToBottom: " + e.getMessage());
                 retryCount = 0;
             }
         }
@@ -139,14 +131,12 @@ public class PageActions {
                     // Ошибка получения цены ожидаема
                 }
             }
-            System.out.println("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
+            LOGGER.info("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
         } catch (Exception e) {
-            System.err.println("Ошибка при выполнении collectPageData: " + e.getMessage());
+            LOGGER.severe("Ошибка при выполнении collectPageData: " + e.getMessage());
 
-            // \УДАЛИТЬ/ ДЛЯ ТЕСТИРОВАНИЯ ПРОГРАММЫ \УДАЛИТЬ/
             String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String fileName = timestamp + ".txt";
-            System.out.println("Сохранил таблицу при ошибке получения контента в paginatorContent в файл " + fileName);
+            String fileName = "collectPageData_ERORR_" + timestamp + ".txt";
             savePageSource(fileName);
         }
     }
@@ -163,7 +153,7 @@ public class PageActions {
             nextButton = wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.xpath("//div[text()='Дальше']/ancestor::a")));
         } catch (Exception e) {
-            System.out.println("Ошибка поиска кнопки ожидаема");
+            LOGGER.severe("Ошибка поиска кнопки ожидаема");
             // Ошибка поиска ожидаема - отсутствие следующей страницы
             return false;
         }
@@ -180,7 +170,7 @@ public class PageActions {
             // Ожидание новой страницы
             return waitForNextPage(wait);
         } catch (Exception e) {
-            System.err.println("Ошибка при выполнении navigateToNextPage: " + e.getMessage());
+            LOGGER.severe("Ошибка при выполнении navigateToNextPage: " + e.getMessage());
             return false;
         }
     }
@@ -195,7 +185,7 @@ public class PageActions {
             nextButton.click();
             return true;
         } catch (Exception e) {
-            System.err.println("Ошибка при нажатии на кнопку 'Дальше': " + e.getMessage());
+            LOGGER.severe("Ошибка при нажатии на кнопку 'Дальше': " + e.getMessage());
             return false;
         }
     }
@@ -206,7 +196,7 @@ public class PageActions {
             wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.cssSelector("[data-widget='searchResultsError']")
             ));
-            System.err.println("Контент на новой странице отсутствует");
+            LOGGER.severe("Контент на новой странице отсутствует");
             return false;
         } catch (TimeoutException e) {
             // Ошибки нет, страница загрузилась
@@ -215,7 +205,7 @@ public class PageActions {
     }
 
     /************************************************
-     *                DEBUG РЕШЕНИЯ                 *
+     *                 ЛОГИРОВАНИЕ                  *
      ************************************************/
     private void savePageSource(String name) {
         try {
@@ -225,7 +215,7 @@ public class PageActions {
             // Указываем путь к папке log
             File logDir = new File("results/" + DatabaseManager.globalFolderName + "/log");
             if (!logDir.exists() && !logDir.mkdirs()) {
-                System.err.println("Не удалось создать директорию: " + logDir.getAbsolutePath());
+                LOGGER.severe("Не удалось создать директорию: " + logDir.getAbsolutePath());
                 return; // Прекращаем выполнение метода, если директория не создана
             }
 
@@ -238,7 +228,7 @@ public class PageActions {
                 writer.write(pageSource);
             }
         } catch (IOException e) {
-            System.err.println("Ошибка при сохранении HTML-кода: " + e.getMessage());
+            LOGGER.severe("Ошибка при сохранении HTML-кода: " + e.getMessage());
         }
     }
 }

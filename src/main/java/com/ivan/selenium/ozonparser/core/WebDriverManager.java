@@ -190,7 +190,7 @@ public class WebDriverManager {
             cleanUserData();
             startDriver();
         } catch (Exception e) {
-            System.out.println("Ошибка при перезапуске WebDriver: " + e.getMessage());
+            LOGGER.severe("Ошибка при перезапуске WebDriver: " + e.getMessage());
         }
     }
 
@@ -224,7 +224,7 @@ public class WebDriverManager {
             }
         }
         if (!file.delete()) {
-            System.err.println("Не удалось удалить файл/директорию: " + file.getAbsolutePath());
+            LOGGER.severe("Не удалось удалить файл/директорию: " + file.getAbsolutePath());
         }
     }
 }

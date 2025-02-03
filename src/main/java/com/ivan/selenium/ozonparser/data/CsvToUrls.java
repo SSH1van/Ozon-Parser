@@ -3,11 +3,14 @@ package com.ivan.selenium.ozonparser.data;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.List;
+import java.util.ArrayList;
+import java.util.logging.Logger;
 
 public class CsvToUrls {
+    private static final Logger LOGGER = Logger.getLogger(CsvToUrls.class.getName());
+
     public static List<String> readUrlsFromCsv(String filePath) {
         List<String> urls = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
@@ -18,7 +21,7 @@ public class CsvToUrls {
                 }
             }
         } catch (IOException e) {
-            System.err.println("Ошибка чтения файла: " + e.getMessage());
+            LOGGER.severe("Ошибка чтения файла: " + e.getMessage());
         }
 
         // Перемешиваем список

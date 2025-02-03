@@ -4,8 +4,10 @@ import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 public class DatabaseManager {
+    private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
     public static String tableName = "unknown";
     private static String DB_URL;
     public static String globalFolderName = "";
@@ -39,7 +41,7 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Ошибка подключения к базе данных: " + e.getMessage());
+            LOGGER.severe("Ошибка подключения к базе данных: " + e.getMessage());
         }
     }
 
@@ -52,9 +54,9 @@ public class DatabaseManager {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             if (e.getSQLState().startsWith("23")) { // Код ошибки уникального ограничения
-                System.err.println("Продукт с такой ссылкой уже существует: " + link);
+                LOGGER.warning("Продукт с такой ссылкой уже существует: " + link);
             } else {
-                System.err.println("Ошибка добавления продукта: " + e.getMessage());
+                LOGGER.warning("Ошибка добавления продукта: " + e.getMessage());
             }
         }
     }
