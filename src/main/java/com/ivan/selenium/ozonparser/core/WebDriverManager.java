@@ -161,7 +161,7 @@ public class WebDriverManager {
     private void addBaseArguments(ChromeOptions chromeOptions, String userDataDirPath) {
         // Убираем заметные следы Selenium
         chromeOptions.addArguments("--no-sandbox", "--window-size=1920,1080", "user-data-dir=" + userDataDirPath,
-                "--disable-blink-features=AutomationControlled", "--incognito");
+                "--disable-blink-features=AutomationControlled");
 
         // Параметры, которые пока что просто добавлены
         chromeOptions.addArguments("--lang=ru", "--disable-infobars", "--disable-popup-blocking",
