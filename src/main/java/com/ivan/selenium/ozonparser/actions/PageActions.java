@@ -10,17 +10,15 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import java.time.Duration;
 import java.text.SimpleDateFormat;
 
-import java.util.List;
-import java.util.Date;
-import java.util.Random;
-import java.util.Objects;
+import java.util.*;
+import java.util.logging.Logger;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.BufferedWriter;
-import java.util.logging.Logger;
 
 public class PageActions {
     public static WebDriver driver;
@@ -46,6 +44,7 @@ public class PageActions {
         }
         catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении extractCategory: " + e.getMessage());
+            savePageSource("extractCategory_ERORR_");
             return "";
         }
     }
@@ -56,25 +55,30 @@ public class PageActions {
 
         try {
             do {
-                if (scrollToBottom(jsExecutor, random)) { return; }
-                collectPageData();
+                Set<String> collectedLinks = new HashSet<>();
+
+                CompletableFuture<Void> scrollFuture = CompletableFuture.runAsync(() -> scrollToBottom(jsExecutor, random));
+                while (!scrollFuture.isDone()) {
+                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedLinks));
+                    collectFuture.get();
+
+                    TimeUnit.MILLISECONDS.sleep(1000 + random.nextInt(500));
+                }
+                scrollFuture.get();
+                System.out.println("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
             } while (navigateToNextPage(jsExecutor));
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении scrollAndClick: " + e.getMessage());
+            savePageSource("scrollAndClick_ERORR_");
         }
     }
 
     /************************************************
      *   ПРОКРУТКА СТРАНИЦЫ ВНИЗ ПОКА ЭТО ВОЗМОЖНО  *
      ************************************************/
-    private boolean scrollToBottom(JavascriptExecutor jsExecutor, Random random) {
+    private void scrollToBottom(JavascriptExecutor jsExecutor, Random random) {
         Actions actions = new Actions(driver);
-        long lastHeight = 0;
-        try {
-            lastHeight = getScrollHeight(jsExecutor);
-        } catch (Exception e) {
-            LOGGER.severe("Ошибка при получении высоты страницы: " + e.getMessage());
-        }
+        long lastHeight = getScrollHeight(jsExecutor);
         int waitTimeInMillis  = 800;
         int retryCount = 0;
 
@@ -93,10 +97,10 @@ public class PageActions {
                 }
             } catch (Exception e) {
                 LOGGER.severe("Ошибка при выполнении scrollToBottom: " + e.getMessage());
+                savePageSource("scrollToBottom_ERORR_");
                 retryCount = 0;
             }
         }
-        return false;
     }
 
     private long getScrollHeight(JavascriptExecutor jsExecutor) {
@@ -104,40 +108,47 @@ public class PageActions {
         if (result instanceof Number) {
             return ((Number) result).longValue();
         } else {
-            throw new IllegalStateException("Не удалось получить высоту страницы.");
+            LOGGER.severe("Ошибка при получении высоты страницы в функции getScrollHeight");
+            savePageSource("getScrollHeight_ERORR_");
         }
+        return 0;
     }
 
     /************************************************
      *    СБОР ДАННЫХ СО СТРАНИЦЫ И ЗАПИСЬ В БД     *
      ************************************************/
-    private void collectPageData() {
+    private void collectPageData(Set<String> collectedLinks) {
         try {
             WebElement paginatorContent = driver.findElement(By.id("paginatorContent"));
-            List<WebElement> productTiles = paginatorContent.findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
+            List<WebElement> productTiles = paginatorContent
+                    .findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
 
             for (WebElement productTile : productTiles) {
                 try {
+                    // Получение ссылки на товар
+                    String productLink = "https://www.ozon.ru" +
+                            Objects.requireNonNull(productTile.findElement(By.cssSelector(".tile-clickable-element"))
+                            .getDomAttribute("href")).split("\\?")[0];
+                    if (collectedLinks.contains(productLink)) {
+                        continue;
+                    }
+
                     // Получение цены товара
                     WebElement priceElement = productTile.findElement(By.cssSelector(".tsHeadline500Medium"));
-                    String productPriceString = priceElement.getText().replaceAll("\\D", ""); // Удаление всех нецифровых символов
+                    String productPriceString = priceElement.getText().replaceAll("\\D", "");
                     int productPrice = Integer.parseInt(productPriceString);
 
-                    // Получение ссылки на товар
-                    String productLink = "https://www.ozon.ru" + Objects.requireNonNull(productTile.findElement(By.cssSelector(".tile-clickable-element")).getDomAttribute("href")).split("\\?")[0];
+                    // Добавляем ссылку в список уже обработанных
+                    collectedLinks.add(productLink);
 
                     DatabaseManager.insertProduct(productPrice, productLink);
                 } catch (Exception e) {
                     // Ошибка получения цены ожидаема
                 }
             }
-            LOGGER.info("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении collectPageData: " + e.getMessage());
-
-            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String fileName = "collectPageData_ERORR_" + timestamp + ".txt";
-            savePageSource(fileName);
+            savePageSource("collectPageData_ERORR_");
         }
     }
 
@@ -153,8 +164,7 @@ public class PageActions {
             nextButton = wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.xpath("//div[text()='Дальше']/ancestor::a")));
         } catch (Exception e) {
-            LOGGER.severe("Ошибка поиска кнопки ожидаема");
-            // Ошибка поиска ожидаема - отсутствие следующей страницы
+            System.out.println("Ошибка поиска кнопки ожидаема");
             return false;
         }
 
@@ -171,6 +181,7 @@ public class PageActions {
             return waitForNextPage(wait);
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении navigateToNextPage: " + e.getMessage());
+            savePageSource("navigateToNextPage_ERORR_");
             return false;
         }
     }
@@ -186,6 +197,7 @@ public class PageActions {
             return true;
         } catch (Exception e) {
             LOGGER.severe("Ошибка при нажатии на кнопку 'Дальше': " + e.getMessage());
+            savePageSource("clickNextButton_ERORR_");
             return false;
         }
     }
@@ -196,7 +208,7 @@ public class PageActions {
             wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.cssSelector("[data-widget='searchResultsError']")
             ));
-            LOGGER.severe("Контент на новой странице отсутствует");
+            System.out.println("Отсутствие контента на новой странице ожидаемо");
             return false;
         } catch (TimeoutException e) {
             // Ошибки нет, страница загрузилась
@@ -207,8 +219,11 @@ public class PageActions {
     /************************************************
      *                 ЛОГИРОВАНИЕ                  *
      ************************************************/
-    private void savePageSource(String name) {
+    private void savePageSource(String fileName) {
         try {
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            fileName += timestamp + ".txt";
+
             // Получаем HTML-код текущей страницы
             String pageSource = driver.getPageSource();
 
@@ -220,7 +235,7 @@ public class PageActions {
             }
 
             // Формируем путь к файлу внутри папки log
-            File file = new File(logDir, name);
+            File file = new File(logDir, fileName);
 
             // Записываем HTML-код в файл
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
