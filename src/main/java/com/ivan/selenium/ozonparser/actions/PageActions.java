@@ -227,7 +227,7 @@ public class PageActions {
             String pageSource = driver.getPageSource();
 
             // Указываем путь к папке log
-            File logDir = new File("log");
+            File logDir = new File("results/" + DatabaseManager.globalFolderName + "/log");
             if (!logDir.exists() && !logDir.mkdirs()) {
                 System.err.println("Не удалось создать директорию: " + logDir.getAbsolutePath());
                 return; // Прекращаем выполнение метода, если директория не создана

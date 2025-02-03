@@ -8,9 +8,11 @@ import java.util.Date;
 public class DatabaseManager {
     public static String tableName = "unknown";
     private static String DB_URL;
+    public static String globalFolderName = "";
 
     public static void initializeDatabasePath() {
         String folderName = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss").format(new Date());
+        globalFolderName = folderName;
         File resultsDir = new File("results");
         File dateDir = new File(resultsDir, folderName);
 
