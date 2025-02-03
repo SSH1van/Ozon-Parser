@@ -13,7 +13,7 @@ public class DatabaseManager {
     public static String globalFolderName = "";
 
     public void initializeDatabasePath() {
-        String folderName = new SimpleDateFormat("dd-MM-yyyy_HH-mm-ss").format(new Date());
+        String folderName = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         globalFolderName = folderName;
         File resultsDir = new File("results");
         File dateDir = new File(resultsDir, folderName);
@@ -53,7 +53,7 @@ public class DatabaseManager {
             pstmt.setString(2, link);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            if (e.getSQLState().startsWith("23")) { // Код ошибки уникального ограничения
+            if (e.getSQLState().startsWith("23")) { // Код ошибки уникального значения
                 LOGGER.warning("Продукт с такой ссылкой уже существует: " + link);
             } else {
                 LOGGER.warning("Ошибка добавления продукта: " + e.getMessage());
