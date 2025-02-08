@@ -51,6 +51,7 @@ public class Main {
             System.out.println("Все товары по ссылкам успешно записаны в базу данных");
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении main функции: " + e.getMessage());
+            PageActions.savePageSource("main_ERORR_");
         } finally {
             driverManager.cleanUp();
         }

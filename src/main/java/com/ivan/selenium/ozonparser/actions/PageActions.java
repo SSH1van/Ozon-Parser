@@ -219,7 +219,7 @@ public class PageActions {
     /************************************************
      *                 ЛОГИРОВАНИЕ                  *
      ************************************************/
-    private void savePageSource(String fileName) {
+    public static void savePageSource(String fileName) {
         try {
             String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
             fileName += timestamp + ".txt";
