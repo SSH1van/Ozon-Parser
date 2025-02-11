@@ -1,6 +1,8 @@
 package com.ivan.selenium.ozonparser.actions;
 
+import com.ivan.selenium.ozonparser.core.WebDriverManager;
 import com.ivan.selenium.ozonparser.data.DatabaseManager;
+import static com.ivan.selenium.ozonparser.core.Main.timeSleep;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
@@ -24,6 +26,7 @@ public class PageActions {
     public static WebDriver driver;
     private static final int MAX_ATTEMPTS = 5;
     private static final Logger LOGGER = Logger.getLogger(PageActions.class.getName());
+    WebDriverManager driverManager = new WebDriverManager();
 
     /************************************************
      *                БАЗОВЫЕ МЕТОДЫ                *
@@ -37,6 +40,14 @@ public class PageActions {
         }
     }
 
+    // Перезапускает driver в случае возникновения ошибки для повторной попытки выполнения действий
+    private void restartOnError() {
+        String currentUrl = driver.getCurrentUrl();
+        driverManager.restartDriverWithCleanUserData();
+        openUrl(currentUrl, timeSleep);
+    }
+
+
     public String extractCategory() {
         try {
             WebElement headerElement = driver.findElement(By.cssSelector("[data-widget='resultsHeader'] h1"));
@@ -45,7 +56,8 @@ public class PageActions {
         catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении extractCategory: " + e.getMessage());
             savePageSource("extractCategory_ERORR_");
-            return "";
+            restartOnError();
+            return extractCategory();
         }
     }
 
@@ -65,11 +77,16 @@ public class PageActions {
                     TimeUnit.MILLISECONDS.sleep(1000 + random.nextInt(500));
                 }
                 scrollFuture.get();
-                System.out.println("Страница записана в базу данных в таблицу: " + DatabaseManager.tableName);
+                // Окончательная проверка на новый контент
+                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedLinks));
+                collectFuture.get();
+                System.out.println("Страница записана в базу данных в таблицу: " + categoryName);
             } while (navigateToNextPage(jsExecutor));
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении scrollAndClick: " + e.getMessage());
             savePageSource("scrollAndClick_ERORR_");
+            restartOnError();
+            scrollAndClick(categoryName);
         }
     }
 

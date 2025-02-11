@@ -14,7 +14,7 @@ public class Main {
 
     static boolean headless = ConfigLoader.getBooleanProperty("webdriver.headless");
     static long timeLoad = ConfigLoader.getLongProperty("webdriver.timeLoad");
-    static long timeSleep = ConfigLoader.getLongProperty("webdriver.timeSleep");
+    public static long timeSleep = ConfigLoader.getLongProperty("webdriver.timeSleep");
 
     public static void main(String[] args) {
         WebDriverManager driverManager = new WebDriverManager();
