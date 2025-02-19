@@ -9,6 +9,10 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.text.SimpleDateFormat;
 
@@ -27,6 +31,9 @@ public class PageActions {
     private static final int MAX_ATTEMPTS = 5;
     private static final Logger LOGGER = Logger.getLogger(PageActions.class.getName());
     WebDriverManager driverManager = new WebDriverManager();
+    DatabaseManager database = new DatabaseManager();
+
+    public PageActions() throws SQLException {}
 
     /************************************************
      *                БАЗОВЫЕ МЕТОДЫ                *
@@ -61,26 +68,28 @@ public class PageActions {
         }
     }
 
+    // ХРАНИТЬ ХЕШ ГРУППЫ ТОВАРОВ
     public void scrollAndClick(String categoryName) {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         Random random = new Random();
 
         try {
             do {
-                Set<String> collectedLinks = new HashSet<>();
+                Set<String> collectedHashes = new HashSet<>();
 
                 CompletableFuture<Void> scrollFuture = CompletableFuture.runAsync(() -> scrollToBottom(jsExecutor, random));
                 while (!scrollFuture.isDone()) {
-                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedLinks));
+                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, categoryName));
                     collectFuture.get();
 
                     TimeUnit.MILLISECONDS.sleep(1000 + random.nextInt(500));
                 }
                 scrollFuture.get();
                 // Окончательная проверка на новый контент
-                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedLinks));
+                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, categoryName));
                 collectFuture.get();
-                System.out.println("Страница записана в базу данных в таблицу: " + categoryName);
+
+                System.out.println("Страница записана в базу данных для категории: " + categoryName);
             } while (navigateToNextPage(jsExecutor));
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении scrollAndClick: " + e.getMessage());
@@ -134,38 +143,65 @@ public class PageActions {
     /************************************************
      *    СБОР ДАННЫХ СО СТРАНИЦЫ И ЗАПИСЬ В БД     *
      ************************************************/
-    private void collectPageData(Set<String> collectedLinks) {
+    private void collectPageData(Set<String> collectedHashes, String categoryName) {
         try {
-            WebElement paginatorContent = driver.findElement(By.id("paginatorContent"));
-            List<WebElement> productTiles = paginatorContent
-                    .findElements(By.cssSelector("[data-widget='searchResultsV2'] .tile-root"));
+            WebElement paginator = driver.findElement(By.id("paginatorContent"));
+            List<WebElement> searchResults = paginator.findElements(By.cssSelector("[data-widget='searchResultsV2']"));
 
-            for (WebElement productTile : productTiles) {
-                try {
-                    // Получение ссылки на товар
-                    String productLink = "https://www.ozon.ru" +
-                            Objects.requireNonNull(productTile.findElement(By.cssSelector(".tile-clickable-element"))
-                            .getDomAttribute("href")).split("\\?")[0];
-                    if (collectedLinks.contains(productLink)) {
-                        continue;
-                    }
+            for (WebElement searchResult : searchResults) {
+                String productHtml = searchResult.getDomProperty("outerHTML");
+                assert productHtml != null;
+                // Получаем только части двух товаров, где есть ссылки для экономии хранимых данных и получения хеша
+                productHtml = productHtml.substring(100, 300) + productHtml.substring(7400, 7600);
+                String hash = hashString(productHtml);
 
-                    // Получение цены товара
-                    WebElement priceElement = productTile.findElement(By.cssSelector(".tsHeadline500Medium"));
-                    String productPriceString = priceElement.getText().replaceAll("\\D", "");
-                    int productPrice = Integer.parseInt(productPriceString);
-
-                    // Добавляем ссылку в список уже обработанных
-                    collectedLinks.add(productLink);
-
-                    DatabaseManager.insertProduct(productPrice, productLink);
-                } catch (Exception e) {
-                    // Ошибка получения цены ожидаема
+                if (collectedHashes.contains(hash)) {
+                    continue;
                 }
+
+                List<WebElement> productTiles = searchResult.findElements(By.cssSelector(".tile-root"));
+                for (WebElement productTile : productTiles) {
+                    try {
+                        // Получение ссылки на товар
+                        String productUrl = "https://www.ozon.ru" +
+                                Objects.requireNonNull(productTile.findElement(By.cssSelector(".tile-clickable-element"))
+                                        .getDomAttribute("href")).split("\\?")[0];
+
+                        // Получение цены товара
+                        WebElement priceElement = productTile.findElement(By.cssSelector(".tsHeadline500Medium"));
+                        String productPriceString = priceElement.getText().replaceAll("\\D", "");
+                        int productPrice = Integer.parseInt(productPriceString);
+
+                        database.addProductWithPrice(categoryName, productUrl, productPrice);
+                    } catch (Exception e) {
+                        // Ошибка получения цены ожидаема
+                    }
+                }
+                // Добавляем хеш в список обработанных
+                collectedHashes.add(hash);
             }
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении collectPageData: " + e.getMessage());
             savePageSource("collectPageData_ERORR_");
+        }
+    }
+
+    private String hashString(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedHash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder(2 * encodedHash.length);
+            for (byte b : encodedHash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Ошибка при вычислении хеша", e);
         }
     }
 
@@ -245,7 +281,7 @@ public class PageActions {
             String pageSource = driver.getPageSource();
 
             // Указываем путь к папке log
-            File logDir = new File("results/" + DatabaseManager.globalFolderName + "/log");
+            File logDir = new File("log/" + DatabaseManager.globalFolderName);
             if (!logDir.exists() && !logDir.mkdirs()) {
                 LOGGER.severe("Не удалось создать директорию: " + logDir.getAbsolutePath());
                 return; // Прекращаем выполнение метода, если директория не создана

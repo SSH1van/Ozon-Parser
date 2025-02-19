@@ -5,6 +5,7 @@ import com.ivan.selenium.ozonparser.data.DatabaseManager;
 import com.ivan.selenium.ozonparser.actions.PageActions;
 import com.ivan.selenium.ozonparser.config.ConfigLoader;
 
+import java.io.File;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -21,14 +22,19 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\nПрограмма завершена. Освобождаем ресурсы...");
             driverManager.cleanUp();
+
+            File logDir = new File("log/" + DatabaseManager.globalFolderName);
+            if (logDir.exists() && logDir.isDirectory() && logDir.delete()) {
+                System.out.println("Пустая директория логов 'log/" + DatabaseManager.globalFolderName + "' удалена.");
+            }
         }));
 
         try {
             PageActions actions = new PageActions();
             DatabaseManager database = new DatabaseManager();
 
-            // Создание директорий и определение пути к БД
-            database.initializeDatabasePath();
+            // Создание директорий и определение пути к логам
+            database.initializeLogPath();
 
             for (String url : urls) {
                 // Перезагрузка chrome под новым IP
@@ -40,8 +46,8 @@ public class Main {
                 // Получаем название таблицы
                 String categoryName = actions.extractCategory();
 
-                // Создать базу данных и таблицу
-                database.createTable(categoryName);
+                // Добавить категорию в БД
+                database.addCategory(categoryName);
 
                 // Получаем цену и ссылку на товар
                 actions.scrollAndClick(categoryName);

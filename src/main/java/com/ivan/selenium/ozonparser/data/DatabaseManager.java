@@ -8,56 +8,62 @@ import java.util.logging.Logger;
 
 public class DatabaseManager {
     private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
-    public static String tableName = "unknown";
-    private static String DB_URL;
+
+    private static final String DB_URL = "jdbc:postgresql://localhost:5432/products";
+    private static final String DB_USER = "postgres";
+    private static final String DB_PASSWORD = "root";
     public static String globalFolderName = "";
 
-    public void initializeDatabasePath() {
+    private final Connection connection;
+
+    public DatabaseManager() throws SQLException {
+        this.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+    }
+
+    public void initializeLogPath() {
         String folderName = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
         globalFolderName = folderName;
-        File resultsDir = new File("results");
-        File dateDir = new File(resultsDir, folderName);
+        File logDir = new File("log");
+        File dateDir = new File(logDir, folderName);
 
         if (!dateDir.exists() && !dateDir.mkdirs()) {
             System.err.println("Не удалось создать директорию: " + dateDir.getAbsolutePath());
             throw new RuntimeException("Не удалось создать директорию для базы данных");
         }
-
-        String dbPath = new File(dateDir, "products.db").getAbsolutePath();
-        DB_URL = "jdbc:sqlite:" + dbPath;
     }
 
-    public void createTable (String tempTableName) {
-        tableName = tempTableName;
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            if (conn != null) {
-                try (Statement stmt = conn.createStatement()) {
-                    // Создание таблицы
-                    String createTableSQL = "CREATE TABLE IF NOT EXISTS \"" + tableName + "\" (" +
-                            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                            "price INTEGER NOT NULL, " +
-                            "link TEXT NOT NULL UNIQUE);";
-                    stmt.execute(createTableSQL);
-                }
-            }
+    public void addCategory(String categoryName) {
+        String sql = "INSERT INTO categories (name) VALUES (?) ON CONFLICT (name) DO NOTHING";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, categoryName);
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.severe("Ошибка подключения к базе данных: " + e.getMessage());
+            LOGGER.severe("Ошибка при добавлении категории в addCategory " + e.getMessage());
         }
     }
 
-    public static void insertProduct(int price, String link) {
-        String insertSQL = "INSERT INTO \"" + tableName + "\"(price, link) VALUES(?, ?)";
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-            pstmt.setInt(1, price);
-            pstmt.setString(2, link);
-            pstmt.executeUpdate();
+    public void addProductWithPrice(String categoryName, String productUrl, int price) {
+        String sql = """
+        WITH category AS (
+            SELECT id FROM categories WHERE name = ?
+        ), 
+        product AS (
+            INSERT INTO products (url, category_id)
+            SELECT ?, category.id FROM category
+            ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
+            RETURNING id
+        )
+        INSERT INTO product_prices (product_id, date, price)
+        SELECT product.id, NOW(), ? FROM product;
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, categoryName);
+            stmt.setString(2, productUrl);
+            stmt.setInt(3, price);
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            if (e.getSQLState().startsWith("23")) { // Код ошибки уникального значения
-                LOGGER.warning("Продукт с такой ссылкой уже существует: " + link);
-            } else {
-                LOGGER.warning("Ошибка добавления продукта: " + e.getMessage());
-            }
+            LOGGER.severe("Ошибка при добавлении продукта в addProductWithPrice " + e.getMessage());
         }
     }
 }
