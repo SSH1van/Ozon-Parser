@@ -3,7 +3,6 @@ package com.ivan.selenium.ozonparser.core;
 import com.ivan.selenium.ozonparser.data.CsvToUrls;
 import com.ivan.selenium.ozonparser.data.DatabaseManager;
 import com.ivan.selenium.ozonparser.actions.PageActions;
-import com.ivan.selenium.ozonparser.config.ConfigLoader;
 
 import java.io.File;
 import java.util.List;
@@ -13,9 +12,9 @@ public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final List<String> urls = CsvToUrls.readUrlsFromCsv("urls.csv");
 
-    static boolean headless = ConfigLoader.getBooleanProperty("webdriver.headless");
-    static long timeLoad = ConfigLoader.getLongProperty("webdriver.timeLoad");
-    public static long timeSleep = ConfigLoader.getLongProperty("webdriver.timeSleep");
+    static boolean headless = false;
+    static long timeLoad = 30;
+    public static long timeSleep = 5;
 
     public static void main(String[] args) {
         WebDriverManager driverManager = new WebDriverManager();
