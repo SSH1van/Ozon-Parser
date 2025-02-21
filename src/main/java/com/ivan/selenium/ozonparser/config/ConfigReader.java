@@ -43,5 +43,13 @@ public class ConfigReader {
     public static String getProxyPassword() {
         return System.getenv("PROXY_PASSWORD");
     }
+
+    public static String getDatabaseUser() {
+        return System.getenv("DATABASE_USER");
+    }
+
+    public static String getDatabasePassword() {
+        return System.getenv("DATABASE_PASSWORD");
+    }
 }
 

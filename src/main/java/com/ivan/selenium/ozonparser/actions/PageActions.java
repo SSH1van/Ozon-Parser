@@ -12,7 +12,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.text.SimpleDateFormat;
 
@@ -30,10 +29,6 @@ public class PageActions {
     public static WebDriver driver;
     private static final int MAX_ATTEMPTS = 5;
     private static final Logger LOGGER = Logger.getLogger(PageActions.class.getName());
-    WebDriverManager driverManager = new WebDriverManager();
-    DatabaseManager database = new DatabaseManager();
-
-    public PageActions() throws SQLException {}
 
     /************************************************
      *                БАЗОВЫЕ МЕТОДЫ                *
@@ -48,14 +43,14 @@ public class PageActions {
     }
 
     // Перезапускает driver в случае возникновения ошибки для повторной попытки выполнения действий
-    private void restartOnError() {
+    private void restartOnError(WebDriverManager driverManager) {
         String currentUrl = driver.getCurrentUrl();
         driverManager.restartDriverWithCleanUserData();
         openUrl(currentUrl, timeSleep);
     }
 
 
-    public String extractCategory() {
+    public String extractCategory(WebDriverManager driverManager) {
         try {
             WebElement headerElement = driver.findElement(By.cssSelector("[data-widget='resultsHeader'] h1"));
             return headerElement.getText();
@@ -63,13 +58,12 @@ public class PageActions {
         catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении extractCategory: " + e.getMessage());
             savePageSource("extractCategory_ERORR_");
-            restartOnError();
-            return extractCategory();
+            restartOnError(driverManager);
+            return extractCategory(driverManager);
         }
     }
 
-    // ХРАНИТЬ ХЕШ ГРУППЫ ТОВАРОВ
-    public void scrollAndClick(String categoryName) {
+    public void scrollAndClick(String categoryName, WebDriverManager driverManager, DatabaseManager dbManager) {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         Random random = new Random();
 
@@ -79,14 +73,14 @@ public class PageActions {
 
                 CompletableFuture<Void> scrollFuture = CompletableFuture.runAsync(() -> scrollToBottom(jsExecutor, random));
                 while (!scrollFuture.isDone()) {
-                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, categoryName));
+                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, categoryName, dbManager));
                     collectFuture.get();
 
                     TimeUnit.MILLISECONDS.sleep(1000 + random.nextInt(500));
                 }
                 scrollFuture.get();
                 // Окончательная проверка на новый контент
-                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, categoryName));
+                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, categoryName, dbManager));
                 collectFuture.get();
 
                 System.out.println("Страница записана в базу данных для категории: " + categoryName);
@@ -94,8 +88,8 @@ public class PageActions {
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении scrollAndClick: " + e.getMessage());
             savePageSource("scrollAndClick_ERORR_");
-            restartOnError();
-            scrollAndClick(categoryName);
+            restartOnError(driverManager);
+            scrollAndClick(categoryName, driverManager, dbManager);
         }
     }
 
@@ -143,7 +137,7 @@ public class PageActions {
     /************************************************
      *    СБОР ДАННЫХ СО СТРАНИЦЫ И ЗАПИСЬ В БД     *
      ************************************************/
-    private void collectPageData(Set<String> collectedHashes, String categoryName) {
+    private void collectPageData(Set<String> collectedHashes, String categoryName, DatabaseManager dbManager) {
         try {
             WebElement paginator = driver.findElement(By.id("paginatorContent"));
             List<WebElement> searchResults = paginator.findElements(By.cssSelector("[data-widget='searchResultsV2']"));
@@ -172,7 +166,7 @@ public class PageActions {
                         String productPriceString = priceElement.getText().replaceAll("\\D", "");
                         int productPrice = Integer.parseInt(productPriceString);
 
-                        database.addProductWithPrice(categoryName, productUrl, productPrice);
+                        dbManager.addProductWithPrice(categoryName, productUrl, productPrice);
                     } catch (Exception e) {
                         // Ошибка получения цены ожидаема
                     }

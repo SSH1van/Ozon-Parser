@@ -1,5 +1,9 @@
 package com.ivan.selenium.ozonparser.data;
 
+import com.ivan.selenium.ozonparser.config.ConfigReader;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -8,16 +12,37 @@ import java.util.logging.Logger;
 
 public class DatabaseManager {
     private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
-
-    private static final String DB_URL = "jdbc:postgresql://localhost:5432/products";
-    private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "root";
+    private static final HikariDataSource dataSource;
     public static String globalFolderName = "";
 
-    private final Connection connection;
+    static {
+        // Настраиваем HikariCP
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:postgresql://localhost:5432/products");
+        config.setUsername(ConfigReader.getDatabaseUser());
+        config.setPassword(ConfigReader.getDatabasePassword());
 
-    public DatabaseManager() throws SQLException {
-        this.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+        // Оптимальные параметры пула соединений
+        config.setMaximumPoolSize(10);  // Максимальное количество соединений в пуле
+        config.setMinimumIdle(2);       // Минимальное количество простаивающих соединений
+        config.setIdleTimeout(30000);   // Закрытие неиспользуемых соединений (30 сек)
+        config.setMaxLifetime(1800000); // Максимальное время жизни соединения (30 мин)
+        config.setConnectionTimeout(10000); // Таймаут подключения (10 сек)
+
+        dataSource = new HikariDataSource(config);
+    }
+
+    // Получаем соединение из пула
+    public static Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+
+    // Закрываем пул при завершении работы приложения
+    public static void closePool() {
+        if (dataSource != null) {
+            dataSource.close();
+            LOGGER.info("Пул соединений HikariCP закрыт.");
+        }
     }
 
     public void initializeLogPath() {
@@ -34,11 +59,12 @@ public class DatabaseManager {
 
     public void addCategory(String categoryName) {
         String sql = "INSERT INTO categories (name) VALUES (?) ON CONFLICT (name) DO NOTHING";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, categoryName);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.severe("Ошибка при добавлении категории в addCategory " + e.getMessage());
+            LOGGER.severe("Ошибка при добавлении категории: " + e.getMessage());
         }
     }
 
@@ -57,13 +83,14 @@ public class DatabaseManager {
         SELECT product.id, NOW(), ? FROM product;
         """;
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, categoryName);
             stmt.setString(2, productUrl);
             stmt.setInt(3, price);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            LOGGER.severe("Ошибка при добавлении продукта в addProductWithPrice " + e.getMessage());
+            LOGGER.severe("Ошибка при добавлении продукта: " + e.getMessage());
         }
     }
 }

@@ -20,6 +20,7 @@ public class Main {
         WebDriverManager driverManager = new WebDriverManager();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\nПрограмма завершена. Освобождаем ресурсы...");
+            DatabaseManager.closePool();
             driverManager.cleanUp();
 
             File logDir = new File("log/" + DatabaseManager.globalFolderName);
@@ -30,10 +31,10 @@ public class Main {
 
         try {
             PageActions actions = new PageActions();
-            DatabaseManager database = new DatabaseManager();
+            DatabaseManager dbManager = new DatabaseManager();
 
             // Создание директорий и определение пути к логам
-            database.initializeLogPath();
+            dbManager.initializeLogPath();
 
             for (String url : urls) {
                 // Перезагрузка chrome под новым IP
@@ -43,13 +44,13 @@ public class Main {
                 actions.openUrl(url, timeSleep);
 
                 // Получаем название таблицы
-                String categoryName = actions.extractCategory();
+                String categoryName = actions.extractCategory(driverManager);
 
                 // Добавить категорию в БД
-                database.addCategory(categoryName);
+                dbManager.addCategory(categoryName);
 
-                // Получаем цену и ссылку на товар
-                actions.scrollAndClick(categoryName);
+                // Получаем цену и ссылку на товар при скроллинге
+                actions.scrollAndClick(categoryName, driverManager, dbManager);
 
                 System.out.println("Ссылка на товар обработана: " + url + "\n");
             }
