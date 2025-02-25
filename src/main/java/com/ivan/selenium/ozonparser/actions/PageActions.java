@@ -148,8 +148,14 @@ public class PageActions {
                 if (productHtml == null) continue;
 
                 // Получаем только части двух товаров, где есть ссылки для экономии хранимых данных и получения хеша
-                productHtml = productHtml.substring(100, 300) + productHtml.substring(7400, 7600);
-                String hash = hashString(productHtml);
+                String hash;
+                String trimmedHtml;
+                if (productHtml.length() >= 7600) {
+                    trimmedHtml = productHtml.substring(100, 300) + productHtml.substring(7400, 7600);
+                } else {
+                    trimmedHtml = productHtml.substring(Math.min(100, productHtml.length()), Math.min(300, productHtml.length()));
+                }
+                hash = hashString(trimmedHtml);
 
                 // Добавляем хеш в список обработанных
                 if (!collectedHashes.add(hash)) {
