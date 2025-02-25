@@ -57,40 +57,87 @@ public class DatabaseManager {
         }
     }
 
-    public void addCategory(String categoryName) {
-        String sql = "INSERT INTO categories (name) VALUES (?) ON CONFLICT (name) DO NOTHING";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, categoryName);
-            stmt.executeUpdate();
+    public void addProductWithPrice(String categoryName, String productUrl, int price) {
+        try (Connection conn = getConnection()) {
+            // Включаем транзакцию для атомарности
+            conn.setAutoCommit(false);
+
+            // Получаем или создаем категорию
+            Integer categoryId = getOrCreateCategory(conn, categoryName);
+
+            // Проверяем существование продукта по url
+            Long productId = getProductIdByUrl(conn, productUrl);
+            if (productId == null) {
+                // Продукта нет, вставляем новый
+                productId = insertProduct(conn, productUrl, categoryId);
+            }
+
+            // Добавляем цену для продукта
+            insertProductPrice(conn, productId, price);
+
+            conn.commit();
         } catch (SQLException e) {
-            LOGGER.severe("Ошибка при добавлении категории: " + e.getMessage());
+            LOGGER.severe("Ошибка при добавлении продукта: " + e.getMessage());
         }
     }
 
-    public void addProductWithPrice(String categoryName, String productUrl, int price) {
-        String sql = """
-        WITH category AS (
-            SELECT id FROM categories WHERE name = ?
-        ), 
-        product AS (
-            INSERT INTO products (url, category_id)
-            SELECT ?, category.id FROM category
-            ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
-            RETURNING id
-        )
-        INSERT INTO product_prices (product_id, date, price)
-        SELECT product.id, NOW(), ? FROM product;
-        """;
+    // Вспомогательный метод: получение или создание категории
+    private Integer getOrCreateCategory(Connection conn, String categoryName) throws SQLException {
+        String checkSql = "SELECT id FROM categories WHERE name = ?";
+        String insertSql = "INSERT INTO categories (name) VALUES (?) RETURNING id";
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, categoryName);
-            stmt.setString(2, productUrl);
-            stmt.setInt(3, price);
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+            checkStmt.setString(1, categoryName);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        }
+
+        try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+            insertStmt.setString(1, categoryName);
+            try (ResultSet rs = insertStmt.executeQuery()) {
+                rs.next();
+                return rs.getInt("id");
+            }
+        }
+    }
+
+    // Вспомогательный метод: получение ID продукта по URL
+    private Long getProductIdByUrl(Connection conn, String productUrl) throws SQLException {
+        String sql = "SELECT id FROM products WHERE url = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, productUrl);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("id");
+                }
+                return null;
+            }
+        }
+    }
+
+    // Вспомогательный метод: вставка нового продукта
+    private Long insertProduct(Connection conn, String productUrl, Integer categoryId) throws SQLException {
+        String sql = "INSERT INTO products (url, category_id) VALUES (?, ?) RETURNING id";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, productUrl);
+            stmt.setInt(2, categoryId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                rs.next();
+                return rs.getLong("id");
+            }
+        }
+    }
+
+    // Вспомогательный метод: вставка цены продукта
+    private void insertProductPrice(Connection conn, Long productId, int price) throws SQLException {
+        String sql = "INSERT INTO product_prices (product_id, date, price) VALUES (?, NOW(), ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, productId);
+            stmt.setInt(2, price);
             stmt.executeUpdate();
-        } catch (SQLException e) {
-            LOGGER.severe("Ошибка при добавлении продукта: " + e.getMessage());
         }
     }
 }

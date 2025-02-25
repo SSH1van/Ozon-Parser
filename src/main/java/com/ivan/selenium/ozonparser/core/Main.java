@@ -46,9 +46,6 @@ public class Main {
                 // Получаем название таблицы
                 String categoryName = actions.extractCategory(driverManager);
 
-                // Добавить категорию в БД
-                dbManager.addCategory(categoryName);
-
                 // Получаем цену и ссылку на товар при скроллинге
                 actions.scrollAndClick(categoryName, driverManager, dbManager);
 
