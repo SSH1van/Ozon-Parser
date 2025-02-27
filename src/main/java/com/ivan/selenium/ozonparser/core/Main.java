@@ -1,7 +1,7 @@
 package com.ivan.selenium.ozonparser.core;
 
 import com.ivan.selenium.ozonparser.data.CsvToUrls;
-import com.ivan.selenium.ozonparser.data.DatabaseManager;
+import com.ivan.selenium.ozonparser.data.DatabaseService;
 import com.ivan.selenium.ozonparser.actions.PageActions;
 
 import java.io.File;
@@ -20,18 +20,18 @@ public class Main {
         WebDriverManager driverManager = new WebDriverManager();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\nПрограмма завершена. Освобождаем ресурсы...");
-            DatabaseManager.closePool();
+            DatabaseService.closePool();
             driverManager.cleanUp();
 
-            File logDir = new File("log/" + DatabaseManager.globalFolderName);
+            File logDir = new File("log/" + DatabaseService.globalFolderName);
             if (logDir.exists() && logDir.isDirectory() && logDir.delete()) {
-                System.out.println("Пустая директория логов 'log/" + DatabaseManager.globalFolderName + "' удалена.");
+                System.out.println("Пустая директория логов 'log/" + DatabaseService.globalFolderName + "' удалена.");
             }
         }));
 
         try {
             PageActions actions = new PageActions();
-            DatabaseManager dbManager = new DatabaseManager();
+            DatabaseService dbManager = new DatabaseService();
 
             // Создание директорий и определение пути к логам
             dbManager.initializeLogPath();

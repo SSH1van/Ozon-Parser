@@ -10,8 +10,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Logger;
 
-public class DatabaseManager {
-    private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
+public class DatabaseService {
+    private static final Logger LOGGER = Logger.getLogger(DatabaseService.class.getName());
     private static final HikariDataSource dataSource;
     public static String globalFolderName = "";
 

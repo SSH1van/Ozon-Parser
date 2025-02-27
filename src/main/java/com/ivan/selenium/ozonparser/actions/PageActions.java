@@ -1,7 +1,7 @@
 package com.ivan.selenium.ozonparser.actions;
 
 import com.ivan.selenium.ozonparser.core.WebDriverManager;
-import com.ivan.selenium.ozonparser.data.DatabaseManager;
+import com.ivan.selenium.ozonparser.data.DatabaseService;
 import static com.ivan.selenium.ozonparser.core.Main.timeSleep;
 
 import org.openqa.selenium.*;
@@ -63,7 +63,7 @@ public class PageActions {
         }
     }
 
-    public void scrollAndClick(String categoryName, WebDriverManager driverManager, DatabaseManager dbManager) {
+    public void scrollAndClick(String categoryName, WebDriverManager driverManager, DatabaseService dbManager) {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         Random random = new Random();
         Set<String> collectedUrls = new HashSet<>();
@@ -138,7 +138,7 @@ public class PageActions {
     /************************************************
      *    СБОР ДАННЫХ СО СТРАНИЦЫ И ЗАПИСЬ В БД     *
      ************************************************/
-    private void collectPageData(Set<String> collectedHashes, Set<String> collectedUrls, String categoryName, DatabaseManager dbManager) {
+    private void collectPageData(Set<String> collectedHashes, Set<String> collectedUrls, String categoryName, DatabaseService dbManager) {
         try {
             WebElement paginator = driver.findElement(By.id("paginatorContent"));
             List<WebElement> searchResults = paginator.findElements(By.cssSelector("[data-widget='searchResultsV2']"));
@@ -302,7 +302,7 @@ public class PageActions {
             String pageSource = driver.getPageSource();
 
             // Указываем путь к папке log
-            File logDir = new File("log/" + DatabaseManager.globalFolderName);
+            File logDir = new File("log/" + DatabaseService.globalFolderName);
             if (!logDir.exists() && !logDir.mkdirs()) {
                 LOGGER.severe("Не удалось создать директорию: " + logDir.getAbsolutePath());
                 return; // Прекращаем выполнение метода, если директория не создана
