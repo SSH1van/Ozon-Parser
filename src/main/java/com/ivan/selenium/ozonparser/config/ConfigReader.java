@@ -50,7 +50,7 @@ public class ConfigReader {
     }
 
     public static String getProxyUser() {
-        return properties.getProperty("proxy.user");
+        return properties.getProperty("proxy.username");
     }
 
     public static String getProxyPassword() {
@@ -58,7 +58,7 @@ public class ConfigReader {
     }
 
     public static String getDatabaseUser() {
-        return properties.getProperty("database.user");
+        return properties.getProperty("database.username");
     }
 
     public static String getDatabasePassword() {
