@@ -43,11 +43,11 @@ public class Main {
                 // Открываем ссылку на товар
                 actions.openUrl(url, timeSleep);
 
-                // Получаем название таблицы
-                String categoryName = actions.extractCategory(driverManager);
+                // Получаем путь из категорий
+                List<String> categoryPath = actions.extractCategoryPath(driverManager);
 
-                // Получаем цену и ссылку на товар при скроллинге
-                actions.scrollAndClick(categoryName, driverManager, dbManager);
+                // Получаем цену и ссылку на товар при скроллинге, добавляем товары в БД
+                actions.scrollAndClick(categoryPath, driverManager, dbManager);
 
                 System.out.println("Ссылка на товар обработана: " + url + "\n");
             }
