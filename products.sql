@@ -2,7 +2,6 @@ CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     parent_id INT REFERENCES categories(id) ON DELETE SET NULL,
-    level INT NOT NULL CHECK (level BETWEEN 1 AND 4),
     UNIQUE (name, parent_id)
 );
 
@@ -20,4 +19,3 @@ CREATE TABLE product_prices (
 );
 
 CREATE INDEX idx_product_prices_date ON product_prices (date);
-CREATE INDEX idx_categories_level ON categories (level);
