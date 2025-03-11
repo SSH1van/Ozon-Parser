@@ -58,13 +58,62 @@ public class DatabaseService {
         }
     }
 
-    public void addProductWithPrice(List<String> categoryPath, String productUrl, int price) {
+    // Получение или создание категории
+    public Integer getOrCreateCategory(Connection conn, List<String> categoryPath) throws SQLException {
+        if (categoryPath == null || categoryPath.isEmpty()) {
+            throw new IllegalArgumentException("Путь категории не может быть пустым");
+        }
+
+        String checkSql = "SELECT id FROM categories WHERE name = ? AND parent_id IS NOT DISTINCT FROM ?";
+        String insertSql = "INSERT INTO categories (name, parent_id) VALUES (?, ?) ON CONFLICT (name, parent_id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
+
+        Integer parentId = null;
+        Integer categoryId = null;
+
+        for (String categoryName : categoryPath) {
+            // Сначала проверяем, существует ли категория с данным именем и parent_id
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setString(1, categoryName);
+                if (parentId == null) {
+                    checkStmt.setNull(2, java.sql.Types.INTEGER);
+                } else {
+                    checkStmt.setInt(2, parentId);
+                }
+
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        categoryId = rs.getInt("id");
+                        parentId = categoryId; // Обновляем parentId для следующей итерации
+                        continue; // Переходим к следующей категории в цепочке
+                    }
+                }
+            }
+
+            // Если категория не найдена, создаём её
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                insertStmt.setString(1, categoryName);
+                if (parentId == null) {
+                    insertStmt.setNull(2, java.sql.Types.INTEGER);
+                } else {
+                    insertStmt.setInt(2, parentId);
+                }
+
+                try (ResultSet rs = insertStmt.executeQuery()) {
+                    if (rs.next()) {
+                        categoryId = rs.getInt(1);
+                        parentId = categoryId; // Обновляем parentId для следующей итерации
+                    }
+                }
+            }
+        }
+
+        return categoryId;
+    }
+
+    public void addProductWithPrice(Integer categoryId, String productUrl, int price) {
         try (Connection conn = getConnection()) {
             // Включаем транзакцию для атомарности
             conn.setAutoCommit(false);
-
-            // Получаем или создаем категорию
-            Integer categoryId = getOrCreateCategory(conn, categoryPath);
 
             // Проверяем существование продукта по url
             Long productId = getProductIdByUrl(conn, productUrl);
@@ -80,53 +129,6 @@ public class DatabaseService {
         } catch (SQLException e) {
             LOGGER.severe("Ошибка при добавлении продукта: " + e.getMessage());
         }
-    }
-
-    // Вспомогательный метод: получение или создание категории
-    private Integer getOrCreateCategory(Connection conn, List<String> categoryPath) throws SQLException {
-        if (categoryPath == null || categoryPath.isEmpty()) {
-            throw new IllegalArgumentException("Путь категории не может быть пустым");
-        }
-
-        String checkSql = "SELECT id FROM categories WHERE name = ?";
-        String insertSql = "INSERT INTO categories (name, parent_id) VALUES (?, ?) RETURNING id";
-
-        Integer parentId = null;
-        Integer categoryId = null;
-        String deepestCategory = categoryPath.getLast();
-
-        // Проверяем, существует ли самая вложенная категория
-        try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
-            checkStmt.setString(1, deepestCategory);
-
-            try (ResultSet rs = checkStmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("id"); // Если нашли, сразу возвращаем ID
-                }
-            }
-        }
-
-        // Если глубинной категории нет, создаём всю цепочку
-        for (String categoryName : categoryPath) {
-            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                insertStmt.setString(1, categoryName);
-                if (parentId == null) {
-                    insertStmt.setNull(2, java.sql.Types.INTEGER);
-                } else {
-                    insertStmt.setInt(2, parentId);
-                }
-
-                insertStmt.executeUpdate();
-                try (ResultSet rs = insertStmt.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        categoryId = rs.getInt(1);
-                        parentId = categoryId; // Текущая категория становится родителем для следующей
-                    }
-                }
-            }
-        }
-
-        return categoryId;
     }
 
     // Вспомогательный метод: получение ID продукта по URL

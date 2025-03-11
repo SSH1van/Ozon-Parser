@@ -5,8 +5,11 @@ import com.ivan.selenium.ozonparser.data.DatabaseService;
 import com.ivan.selenium.ozonparser.actions.PageActions;
 
 import java.io.File;
+import java.sql.Connection;
 import java.util.List;
 import java.util.logging.Logger;
+
+import static com.ivan.selenium.ozonparser.data.DatabaseService.getConnection;
 
 public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
@@ -32,6 +35,7 @@ public class Main {
         try {
             PageActions actions = new PageActions();
             DatabaseService dbManager = new DatabaseService();
+            Integer categoryId;
 
             // Создание директорий и определение пути к логам
             dbManager.initializeLogPath();
@@ -46,8 +50,13 @@ public class Main {
                 // Получаем путь из категорий
                 List<String> categoryPath = actions.extractCategoryPath(driverManager);
 
+                // Получение или создание категории
+                try (Connection conn = getConnection()) {
+                    categoryId = dbManager.getOrCreateCategory(conn, categoryPath);
+                }
+
                 // Получаем цену и ссылку на товар при скроллинге, добавляем товары в БД
-                actions.scrollAndClick(categoryPath, driverManager, dbManager);
+                actions.scrollAndClick(categoryId, driverManager, dbManager);
 
                 System.out.println("Ссылка на товар обработана: " + url + "\n");
             }

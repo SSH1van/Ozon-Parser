@@ -83,7 +83,7 @@ public class PageActions {
         }
     }
 
-    public void scrollAndClick(List<String> categoryPath, WebDriverManager driverManager, DatabaseService dbManager) {
+    public void scrollAndClick(Integer categoryId, WebDriverManager driverManager, DatabaseService dbManager) {
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         Random random = new Random();
         Set<String> collectedUrls = new HashSet<>();
@@ -94,23 +94,23 @@ public class PageActions {
 
                 CompletableFuture<Void> scrollFuture = CompletableFuture.runAsync(() -> scrollToBottom(jsExecutor, random));
                 while (!scrollFuture.isDone()) {
-                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, collectedUrls, categoryPath, dbManager));
+                    CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, collectedUrls, categoryId, dbManager));
                     collectFuture.get();
 
                     TimeUnit.MILLISECONDS.sleep(1000 + random.nextInt(500));
                 }
                 scrollFuture.get();
                 // Окончательная проверка на новый контент
-                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, collectedUrls, categoryPath, dbManager));
+                CompletableFuture<Void> collectFuture = CompletableFuture.runAsync(() -> collectPageData(collectedHashes, collectedUrls, categoryId, dbManager));
                 collectFuture.get();
 
-                System.out.println("Страница записана в базу данных для категории: " + categoryPath.getLast());
+                System.out.println("Страница записана в базу данных");
             } while (navigateToNextPage(jsExecutor));
         } catch (Exception e) {
             LOGGER.severe("Ошибка при выполнении scrollAndClick: " + e.getMessage());
             savePageSource("scrollAndClick_ERORR_");
             restartOnError(driverManager);
-            scrollAndClick(categoryPath, driverManager, dbManager);
+            scrollAndClick(categoryId, driverManager, dbManager);
         }
     }
 
@@ -158,7 +158,7 @@ public class PageActions {
     /************************************************
      *    СБОР ДАННЫХ СО СТРАНИЦЫ И ЗАПИСЬ В БД     *
      ************************************************/
-    private void collectPageData(Set<String> collectedHashes, Set<String> collectedUrls, List<String> categoryPath, DatabaseService dbManager) {
+    private void collectPageData(Set<String> collectedHashes, Set<String> collectedUrls, Integer categoryId, DatabaseService dbManager) {
         try {
             WebElement paginator = driver.findElement(By.id("paginator"));
             List<WebElement> searchResults = paginator.findElements(By.cssSelector("[data-widget='searchResultsV2']"));
@@ -195,7 +195,7 @@ public class PageActions {
                         int productPrice = extractProductPrice(productTile);
 
                         // Сохранение в БД
-                        dbManager.addProductWithPrice(categoryPath, productUrl, productPrice);
+                        dbManager.addProductWithPrice(categoryId, productUrl, productPrice);
                     } catch (Exception e) {
                         // Ошибка получения цены ожидаема
                     }
